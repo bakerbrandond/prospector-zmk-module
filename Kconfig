@@ -34,6 +34,8 @@ config PROSPECTOR_ZAPPY_BIRDS
     default n
     depends on SHIELD_PROSPECTOR_ADAPTER
     select LV_USE_LABEL
+    select LV_USE_LINE
+    select LV_USE_FLEX
     help
       Adds the &zappy (toggle game mode) and &zflap (flap) behaviors and the
       game screen. Pair with a keymap layer of &zflap bindings.

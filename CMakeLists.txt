@@ -20,7 +20,9 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
         zephyr_library_sources(src/split/bluetooth/central_status_changed_observer.c)
 
         if(CONFIG_PROSPECTOR_ZAPPY_BIRDS)
+                zephyr_library_include_directories(boards/shields/prospector_adapter/include)
                 zephyr_library_sources(src/zappy/zappy_core.c)
+                zephyr_library_sources(src/zappy/zappy_screen.c)
         endif()
 
 endif()
