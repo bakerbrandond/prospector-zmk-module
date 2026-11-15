@@ -146,13 +146,69 @@ K_THREAD_DEFINE(als_tid, 1024, als_thread, NULL, NULL, NULL, K_LOWEST_APPLICATIO
                 0);
 
 #else
+/*
+ * Fixed brightness, adjustable with the &pbl key: each press steps to the next
+ * level (bl_levels.h). The level is saved as settings key "prospector/bl" 2 s
+ * after the last press (one flash write per burst of presses) and restored at
+ * boot; before anything is saved it's CONFIG_PROSPECTOR_FIXED_BRIGHTNESS.
+ */
+#include <errno.h>
+#include <zephyr/settings/settings.h>
+#include <zephyr/sys/atomic.h>
 
-static int init_fixed_brightness(void) {
-    led_set_brightness(pwm_leds_dev, DISP_BL, CONFIG_PROSPECTOR_FIXED_BRIGHTNESS);
+#include "bl_levels.h"
 
-    return 0;
+#define SAVE_DELAY_MS 2000
+
+static atomic_t current = ATOMIC_INIT(CONFIG_PROSPECTOR_FIXED_BRIGHTNESS);
+
+static void apply(uint8_t level) {
+    if (led_set_brightness(pwm_leds_dev, DISP_BL, level)) {
+        LOG_ERR("Failed to set brightness");
+    }
 }
 
-SYS_INIT(init_fixed_brightness, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+static void save_work_cb(struct k_work *work) {
+    uint8_t level = (uint8_t)atomic_get(&current);
+    int err = settings_save_one("prospector/bl", &level, sizeof(level));
+    if (err) {
+        LOG_ERR("Failed to save brightness (%d)", err);
+    }
+}
+static K_WORK_DELAYABLE_DEFINE(save_work, save_work_cb);
 
+void prospector_backlight_cycle(void) {
+    uint8_t level = bl_next_level((uint8_t)atomic_get(&current));
+    atomic_set(&current, level);
+    apply(level);
+    k_work_reschedule(&save_work, K_MSEC(SAVE_DELAY_MS));
+}
+
+static int bl_settings_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg) {
+    const char *next;
+    if (settings_name_steq(name, "bl", &next) && !next) {
+        uint8_t level;
+        if (len != sizeof(level)) {
+            return -EINVAL;
+        }
+        int rc = read_cb(cb_arg, &level, sizeof(level));
+        if (rc < 0) {
+            return rc;
+        }
+        if (level > 100) {
+            level = 100;
+        }
+        atomic_set(&current, level);
+        apply(level);
+        return 0;
+    }
+    return -ENOENT;
+}
+SETTINGS_STATIC_HANDLER_DEFINE(prospector_bl, "prospector", NULL, bl_settings_set, NULL, NULL);
+
+static int init_fixed_brightness(void) {
+    apply((uint8_t)atomic_get(&current));
+    return 0;
+}
+SYS_INIT(init_fixed_brightness, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 #endif

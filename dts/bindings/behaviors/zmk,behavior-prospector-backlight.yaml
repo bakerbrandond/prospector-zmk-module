@@ -1,0 +1,7 @@
+# &pbl: step the Prospector display backlight to its next level.
+
+description: Prospector backlight cycle
+
+compatible: "zmk,behavior-prospector-backlight"
+
+include: zero_param.yaml
