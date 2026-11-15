@@ -107,6 +107,9 @@ int zmk_widget_layer_roller_init(struct zmk_widget_layer_roller *widget, lv_obj_
     // Only the active layer is shown; the other rows stay but are invisible,
     // so a layer change still slides the new name in
     lv_obj_set_style_text_opa(widget->obj, LV_OPA_TRANSP, LV_PART_MAIN);
+    // text_opa is inherited: without its own value the selected row would
+    // fall back to the main part's and vanish too
+    lv_obj_set_style_text_opa(widget->obj, LV_OPA_COVER, LV_PART_SELECTED);
     // lv_obj_set_style_text_align(widget->obj, LV_TEXT_ALIGN_CENTER, 0);
 
 
