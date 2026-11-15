@@ -20,18 +20,20 @@
 #define BIRD_DRAW 20 /* body drawn slightly larger than the collision box */
 #define CAP_H 6
 #define CAP_OVERHANG 3
+#define TITLE_BIRD_DROP 80
 
 static lv_obj_t *screen;
 static lv_obj_t *bird, *bolt;
 static lv_obj_t *pylon_top[ZAPPY_NUM_PYLONS], *pylon_bot[ZAPPY_NUM_PYLONS];
 static lv_obj_t *cap_top[ZAPPY_NUM_PYLONS], *cap_bot[ZAPPY_NUM_PYLONS];
-static lv_obj_t *score_label;
+static lv_obj_t *score_label, *hard_score_label, *target_label;
 static lv_obj_t *title_box, *title_best;
-static lv_obj_t *over_box, *over_score, *over_best, *over_new;
+static lv_obj_t *over_box, *over_mode, *over_score, *over_best, *over_new;
 
 static lv_style_t st_plain, st_bar, st_cap;
 
-static char score_buf[8], title_best_buf[16], over_score_buf[8], over_best_buf[16];
+static char score_buf[8], hard_score_buf[8], target_buf[2], title_best_buf[24], over_score_buf[8],
+    over_best_buf[16];
 
 /* bolt wing in two poses, coordinates inside the bird object */
 static const lv_point_t bolt_up[] = {{2, 12}, {8, 4}, {9, 9}, {15, 2}};
@@ -135,14 +137,24 @@ lv_obj_t *zappy_screen_create(void) {
     lv_label_set_text_static(score_label, score_buf);
     lv_obj_align(score_label, LV_ALIGN_TOP_MID, 0, 10);
 
+    /* hard mode: big target letter on top, score in the corner */
+    target_label = label(screen, &FRAC_Regular_48, NORD13);
+    lv_label_set_text_static(target_label, target_buf);
+    lv_obj_align(target_label, LV_ALIGN_TOP_MID, 0, 14);
+    hard_score_label = label(screen, &CaskaydiaCove_SemiBold_20, NORD6);
+    lv_label_set_text_static(hard_score_label, hard_score_buf);
+    lv_obj_align(hard_score_label, LV_ALIGN_TOP_RIGHT, -10, 10);
+
     title_box = box();
     lv_label_set_text_static(label(title_box, &SF_Compact_Text_Bold_32, NORD13), "ZAPPY\nBIRDS");
-    lv_label_set_text_static(label(title_box, &CaskaydiaCove_SemiBold_20, NORD4), "press any key");
+    lv_label_set_text_static(label(title_box, &CaskaydiaCove_SemiBold_20, NORD4), "any key: play\nH: hard");
     title_best = label(title_box, &CaskaydiaCove_SemiBold_20, NORD8);
     lv_label_set_text_static(title_best, title_best_buf);
     lv_obj_align(title_box, LV_ALIGN_TOP_MID, 0, 28);
 
     over_box = box();
+    over_mode = label(over_box, &CaskaydiaCove_SemiBold_20, NORD12);
+    lv_label_set_text_static(over_mode, "HARD");
     over_score = label(over_box, &FRAC_Regular_48, NORD6);
     lv_label_set_text_static(over_score, over_score_buf);
     over_best = label(over_box, &CaskaydiaCove_SemiBold_20, NORD8);
@@ -163,8 +175,15 @@ static void set_text_num(lv_obj_t *l, char *buf, size_t len, const char *fmt, un
     }
 }
 
-static void render_pylon(int i, const struct zappy_pylon *p) {
-    int16_t bot_y = p->gap_top + ZAPPY_GAP_H;
+static void set_text_str(lv_obj_t *l, char *buf, size_t len, const char *text) {
+    if (strncmp(text, buf, len) != 0) {
+        snprintf(buf, len, "%s", text);
+        lv_label_set_text_static(l, buf);
+    }
+}
+
+static void render_pylon(int i, const struct zappy_pylon *p, int16_t gap_h) {
+    int16_t bot_y = p->gap_top + gap_h;
     lv_obj_set_pos(pylon_top[i], p->x, 0);
     lv_obj_set_size(pylon_top[i], ZAPPY_PYLON_W, p->gap_top);
     lv_obj_set_pos(pylon_bot[i], p->x, bot_y);
@@ -180,7 +199,9 @@ void zappy_screen_render(const struct zappy_game *g) {
 
     /* bird: draw box centered on the collision box */
     int16_t off = (BIRD_DRAW - ZAPPY_BIRD_SIZE) / 2;
-    lv_obj_set_pos(bird, ZAPPY_BIRD_X - off, zappy_bird_y(g) - off);
+    /* on the title the bird bobs below the text instead of behind it */
+    int16_t title_drop = g->phase == ZAPPY_TITLE ? TITLE_BIRD_DROP : 0;
+    lv_obj_set_pos(bird, ZAPPY_BIRD_X - off, zappy_bird_y(g) - off + title_drop);
     int pose = g->flap_frames ? 1 : 0;
     if (pose != last_flap_pose) {
         last_flap_pose = pose;
@@ -194,21 +215,34 @@ void zappy_screen_render(const struct zappy_game *g) {
         set_hidden(cap_top[i], !show);
         set_hidden(cap_bot[i], !show);
         if (show)
-            render_pylon(i, &g->pylons[i]);
+            render_pylon(i, &g->pylons[i], g->gap_h);
     }
 
-    set_hidden(score_label, !playing);
-    if (playing)
+    bool hard = g->mode == ZAPPY_HARD;
+    set_hidden(score_label, !(playing && !hard));
+    set_hidden(hard_score_label, !(playing && hard));
+    set_hidden(target_label, !(playing && hard));
+    if (playing && !hard)
         set_text_num(score_label, score_buf, sizeof(score_buf), "%u", g->score);
+    if (playing && hard) {
+        set_text_num(hard_score_label, hard_score_buf, sizeof(hard_score_buf), "%u", g->score);
+        char t[2] = {zappy_target_letter(g), 0};
+        set_text_str(target_label, target_buf, sizeof(target_buf), t);
+    }
 
     set_hidden(title_box, !title);
-    if (title)
-        set_text_num(title_best, title_best_buf, sizeof(title_best_buf), "BEST %u", g->best);
+    if (title) {
+        char t[24];
+        snprintf(t, sizeof(t), "BEST %u  HARD %u", g->best, g->best_hard);
+        set_text_str(title_best, title_best_buf, sizeof(title_best_buf), t);
+    }
 
     set_hidden(over_box, !crashed);
     if (crashed) {
         set_text_num(over_score, over_score_buf, sizeof(over_score_buf), "%u", g->score);
-        set_text_num(over_best, over_best_buf, sizeof(over_best_buf), "BEST %u", g->best);
+        set_text_num(over_best, over_best_buf, sizeof(over_best_buf), "BEST %u",
+                     hard ? g->best_hard : g->best);
+        set_hidden(over_mode, !hard);
         set_hidden(over_new, !g->new_best);
     }
 

@@ -45,7 +45,7 @@ BEHAVIOR_DT_INST_DEFINE(0, NULL, NULL, NULL, NULL, POST_KERNEL,
 static int zappy_flap_pressed(struct zmk_behavior_binding *binding,
                               struct zmk_behavior_binding_event event) {
     if (IS_ENABLED(CONFIG_PROSPECTOR_ZAPPY_BIRDS))
-        zappy_mode_flap();
+        zappy_mode_flap((uint8_t)event.position);
     return ZMK_BEHAVIOR_OPAQUE;
 }
 
