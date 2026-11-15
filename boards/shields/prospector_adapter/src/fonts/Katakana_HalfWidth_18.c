@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 18 px
  * Bpp: 4
- * Opts: --font /usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf -r 0xFF66-0xFF9D --size 18 --bpp 4 --format lvgl --no-compress --lv-include lvgl.h -o DroidSansFallback_Katakana_18.c
+ * Opts: --font /usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf -r 0xFF66-0xFF9D --size 18 --bpp 4 --format lvgl --no-compress --lv-include lvgl.h -o Katakana_HalfWidth_18.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -10,11 +10,11 @@
 #include "lvgl.h"
 #endif
 
-#ifndef DROIDSANSFALLBACK_KATAKANA_18
-#define DROIDSANSFALLBACK_KATAKANA_18 1
+#ifndef KATAKANA_HALFWIDTH_18
+#define KATAKANA_HALFWIDTH_18 1
 #endif
 
-#if DROIDSANSFALLBACK_KATAKANA_18
+#if KATAKANA_HALFWIDTH_18
 
 /*-----------------
  *    BITMAPS
@@ -704,9 +704,9 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 
 /*Initialize a public general font descriptor*/
 #if LV_VERSION_CHECK(8, 0, 0)
-const lv_font_t DroidSansFallback_Katakana_18 = {
+const lv_font_t Katakana_HalfWidth_18 = {
 #else
-lv_font_t DroidSansFallback_Katakana_18 = {
+lv_font_t Katakana_HalfWidth_18 = {
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/

@@ -2,9 +2,6 @@
 
 #include <lvgl.h>
 
-// LV_FONT_DECLARE(SF_Compact_Text_Light_24);
-// LV_FONT_DECLARE(SF_Compact_Text_Semibold_28);
-LV_FONT_DECLARE(SF_Compact_Text_Bold_32);
 // LV_FONT_DECLARE(InterDisplay_Light_40);
 // LV_FONT_DECLARE(InterDisplay_Thin_56);
 // LV_FONT_DECLARE(InterDisplay_Bold_56);
@@ -21,4 +18,5 @@ LV_FONT_DECLARE(CaskaydiaCove_ExtraLight_48);
 LV_FONT_DECLARE(CaskaydiaCove_SemiBold_20);
 LV_FONT_DECLARE(CaskaydiaCove_SemiBold_32);
 LV_FONT_DECLARE(CaskaydiaCove_Regular_14);
-LV_FONT_DECLARE(DroidSansFallback_Katakana_18);
+LV_FONT_DECLARE(Katakana_HalfWidth_18);
+LV_FONT_DECLARE(CaskaydiaCove_Bold_32);

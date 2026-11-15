@@ -61,4 +61,4 @@
 // Matrix rain screensaver
 #define THEME_MATRIX_HEAD NORD6
 #define THEME_MATRIX_TRAIL NORD14
-#define THEME_FONT_MATRIX DroidSansFallback_Katakana_18
+#define THEME_FONT_MATRIX Katakana_HalfWidth_18

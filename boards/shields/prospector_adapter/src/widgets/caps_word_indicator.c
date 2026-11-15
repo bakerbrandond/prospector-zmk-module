@@ -5,7 +5,6 @@
 #include <zmk/event_manager.h>
 
 #include <fonts.h>
-#include <sf_symbols.h>
 #include <theme.h>
 
 #include <zephyr/logging/log.h>
@@ -49,11 +48,10 @@ int zmk_widget_caps_word_indicator_init(struct zmk_widget_caps_word_indicator *w
                                         lv_obj_t *parent) {
     widget->obj = lv_label_create(parent);
 
-    // LV_FONT_DECLARE(SF_Compact_Text_Bold_32);
 
-    lv_label_set_text(widget->obj, SF_SYMBOL_CHARACTER_CURSOR_IBEAM);
+    lv_label_set_text(widget->obj, "CW"); /* caps word */
     lv_obj_set_style_text_color(widget->obj, lv_color_hex(THEME_INDICATOR_OFF), LV_PART_MAIN);
-    lv_obj_set_style_text_font(widget->obj, &SF_Compact_Text_Bold_32, LV_PART_MAIN);
+    lv_obj_set_style_text_font(widget->obj, &CaskaydiaCove_Bold_32, LV_PART_MAIN);
     lv_obj_set_style_text_align(widget->obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 
     sys_slist_append(&widgets, &widget->node);

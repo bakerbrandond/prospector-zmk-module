@@ -1,4 +1,4 @@
-DroidSansFallback_Katakana_18.c is a subset (half-width katakana U+FF66-U+FF9D)
+Katakana_HalfWidth_18.c is a subset (half-width katakana U+FF66-U+FF9D)
 of Droid Sans Fallback, converted with lv_font_conv 1.5.2.
 
 Copyright (C) 2006-2010 Google Corp. Droid is a trademark of Google Corp.

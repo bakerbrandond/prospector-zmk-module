@@ -146,7 +146,7 @@ lv_obj_t *zappy_screen_create(void) {
     lv_obj_align(hard_score_label, LV_ALIGN_TOP_RIGHT, -10, 10);
 
     title_box = box();
-    lv_label_set_text_static(label(title_box, &SF_Compact_Text_Bold_32, NORD13), "ZAPPY\nBIRDS");
+    lv_label_set_text_static(label(title_box, &CaskaydiaCove_Bold_32, NORD13), "ZAPPY\nBIRDS");
     lv_label_set_text_static(label(title_box, &CaskaydiaCove_SemiBold_20, NORD4), "any key: play\nH: hard");
     title_best = label(title_box, &CaskaydiaCove_SemiBold_20, NORD8);
     lv_label_set_text_static(title_best, title_best_buf);

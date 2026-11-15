@@ -9,7 +9,6 @@
 #include "widgets/wpm_panel.h"
 
 #include <fonts.h>
-#include <sf_symbols.h>
 #include <theme.h>
 
 #include <zmk/keymap.h>

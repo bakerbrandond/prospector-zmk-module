@@ -115,7 +115,6 @@ int zmk_widget_layer_roller_init(struct zmk_widget_layer_roller *widget, lv_obj_
 
     // static lv_style_t style_roller;
     // lv_style_init(&style_roller);
-    // lv_style_set_text_font(&style_roller, &SF_Compact_Text_Light_24);
     // lv_style_set_text_letter_space(&style_roller, -0.5);
     // lv_style_set_text_line_space(&style_roller, 20);
     // lv_style_set_text_color(&style_roller, lv_color_hex(0x6b6b6b));
@@ -124,7 +123,6 @@ int zmk_widget_layer_roller_init(struct zmk_widget_layer_roller *widget, lv_obj_
 
     // static lv_style_t style_roller_sel;
     // lv_style_init(&style_roller_sel);
-    // lv_style_set_text_font(&style_roller_sel, &SF_Compact_Text_Semibold_28);
     // lv_style_set_text_letter_space(&style_roller_sel, -0.5);
     // lv_style_set_text_line_space(&style_roller_sel, 16);
     // lv_style_set_text_color(&style_roller_sel, lv_color_hex(0xffffff));
