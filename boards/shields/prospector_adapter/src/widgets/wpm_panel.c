@@ -89,9 +89,6 @@ int zmk_widget_wpm_panel_init(struct zmk_widget_wpm_panel *widget, lv_obj_t *par
     // Opaque background for the panel
     lv_obj_set_style_bg_color(widget->obj, lv_color_hex(THEME_BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(widget->obj, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_side(widget->obj, LV_BORDER_SIDE_TOP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(widget->obj, 1, LV_PART_MAIN);
-    lv_obj_set_style_border_color(widget->obj, lv_color_hex(THEME_WPM_DIVIDER), LV_PART_MAIN);
     lv_obj_set_style_pad_top(widget->obj, 6, LV_PART_MAIN);
     lv_obj_clear_flag(widget->obj, LV_OBJ_FLAG_SCROLLABLE);
 

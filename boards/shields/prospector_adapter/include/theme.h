@@ -55,6 +55,5 @@
 #define THEME_WPM_LABEL NORD4
 #define THEME_WPM_LINE NORD8
 #define THEME_WPM_FILL NORD1
-#define THEME_WPM_DIVIDER NORD1
 #define THEME_FONT_WPM CaskaydiaCove_SemiBold_32
 #define THEME_FONT_WPM_LABEL CaskaydiaCove_SemiBold_20
