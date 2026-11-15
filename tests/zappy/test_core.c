@@ -202,6 +202,18 @@ static void test_exit_needs_pause_after_flap(void) {
     assert(zappy_exit_allowed(ZAPPY_EXIT_IDLE_MS - 10, 0xFFFFFFF0u));
 }
 
+static void test_steps_follow_real_time(void) {
+    /* 40 ms timer callbacks must still average one step per ZAPPY_TICK_MS */
+    uint32_t acc = 0, steps = 0;
+    for (int i = 0; i < 1000; i++)
+        steps += zappy_steps_due(&acc, 40);
+    assert(steps == 40000 / ZAPPY_TICK_MS);
+    /* a long stall is capped so the game doesn't jump ahead */
+    acc = 0;
+    assert(zappy_steps_due(&acc, 5000) == ZAPPY_MAX_CATCHUP_STEPS);
+    assert(acc < ZAPPY_TICK_MS);
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -219,6 +231,7 @@ int main(void) {
     RUN(test_long_run_stays_in_bounds);
     RUN(test_deterministic_seed);
     RUN(test_exit_needs_pause_after_flap);
+    RUN(test_steps_follow_real_time);
     printf("ok %d tests\n", n);
     return 0;
 }

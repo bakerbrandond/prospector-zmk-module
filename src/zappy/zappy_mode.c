@@ -36,6 +36,12 @@ static struct zappy_game game;
 static lv_obj_t *status_screen;
 static lv_timer_t *timer;
 static uint16_t saved_best;
+static uint32_t last_tick_ms, step_acc;
+
+/* LVGL runs every CONFIG_ZMK_DISPLAY_TICK_PERIOD_MS (10 ms), so a 33 ms
+ * timer really fires every 40 ms. Poll each pass and step on a fixed
+ * ZAPPY_TICK_MS timestep instead, so game speed follows real time. */
+#define POLL_MS 10
 
 __weak void zappy_store_save(uint16_t b) { ARG_UNUSED(b); }
 
@@ -57,10 +63,15 @@ static void deactivate_work_cb(struct k_work *work) {
 static void tick_cb(lv_timer_t *t) {
     uint32_t now = k_uptime_get_32();
 
-    if (atomic_set(&pending_flaps, 0) > 0)
-        zappy_press(&game, now); /* several presses in one tick = one flap */
-    zappy_step(&game, now);
-    zappy_screen_render(&game);
+    bool pressed = atomic_set(&pending_flaps, 0) > 0;
+    if (pressed)
+        zappy_press(&game, now); /* several presses in one pass = one flap */
+    uint8_t steps = zappy_steps_due(&step_acc, now - last_tick_ms);
+    last_tick_ms = now;
+    for (uint8_t i = 0; i < steps; i++)
+        zappy_step(&game, now);
+    if (steps || pressed)
+        zappy_screen_render(&game);
 
     if (game.best > saved_best) {
         saved_best = game.best;
@@ -87,7 +98,9 @@ static void show_game(void) {
     atomic_set(&pending_flaps, 0);
     zappy_screen_render(&game);
     lv_scr_load(scr);
-    timer = lv_timer_create(tick_cb, ZAPPY_TICK_MS, NULL);
+    last_tick_ms = k_uptime_get_32();
+    step_acc = 0;
+    timer = lv_timer_create(tick_cb, POLL_MS, NULL);
 }
 
 static void hide_game(void) {

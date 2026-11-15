@@ -164,3 +164,17 @@ int16_t zappy_bird_y(const struct zappy_game *g) { return (int16_t)(g->bird_y_fp
 bool zappy_exit_allowed(uint32_t now_ms, uint32_t last_flap_ms) {
     return (uint32_t)(now_ms - last_flap_ms) >= ZAPPY_EXIT_IDLE_MS;
 }
+
+uint8_t zappy_steps_due(uint32_t *acc, uint32_t elapsed_ms) {
+    uint8_t n = 0;
+    *acc += elapsed_ms;
+    while (*acc >= ZAPPY_TICK_MS) {
+        if (n == ZAPPY_MAX_CATCHUP_STEPS) {
+            *acc = 0; /* drop the rest of a long stall */
+            break;
+        }
+        *acc -= ZAPPY_TICK_MS;
+        n++;
+    }
+    return n;
+}
