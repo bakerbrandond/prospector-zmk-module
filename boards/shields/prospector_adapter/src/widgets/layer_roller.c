@@ -1,4 +1,5 @@
 #include "layer_roller.h"
+#include "roller_names.h"
 
 #include <ctype.h>
 #include <zmk/display.h>
@@ -12,10 +13,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-static char layer_names_buffer[256] = {0}; // Buffer for concatenated layer names
-
-// Trailing layers left out of the roller (e.g. the Zappy Birds game layer)
-#define VISIBLE_LAYERS (ZMK_KEYMAP_LAYERS_LEN - CONFIG_PROSPECTOR_ROLLER_HIDDEN_TRAILING_LAYERS)
+static char layer_names_buffer[256] = {0}; // Concatenated names of the visible layers
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -23,17 +21,40 @@ struct layer_roller_state {
     uint8_t index;
 };
 
-static void layer_roller_set_sel(lv_obj_t *roller, struct layer_roller_state state) {
-    lv_roller_set_selected(roller, state.index, LV_ANIM_ON);
+/*
+ * Rebuilds the roller's options from the live keymap (ZMK Studio can rename,
+ * add and reorder layers at runtime, and raises no event for it), skipping the
+ * layer named CONFIG_PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME (the Zappy Birds game
+ * layer). Options are only re-set when the text changed. Returns the visible
+ * row of layer index `active`, or -1 if that layer is hidden.
+ */
+static int layer_roller_refresh(lv_obj_t *roller, int active) {
+    static char next[sizeof(layer_names_buffer)];
+    const char *names[ZMK_KEYMAP_LAYERS_LEN];
+    int n = 0;
+    for (; n < ZMK_KEYMAP_LAYERS_LEN; n++) {
+        zmk_keymap_layer_id_t id = zmk_keymap_layer_index_to_id(n);
+        if (id == ZMK_KEYMAP_LAYER_ID_INVAL) {
+            break; // unused (Studio-reserved) layers come last
+        }
+        names[n] = zmk_keymap_layer_name(id);
+    }
+    int sel = roller_build(names, n, active, CONFIG_PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME,
+                           IS_ENABLED(CONFIG_PROSPECTOR_LAYER_ROLLER_ALL_CAPS), next, sizeof(next));
+    if (strcmp(next, layer_names_buffer) != 0) {
+        strcpy(layer_names_buffer, next);
+        lv_roller_set_options(roller, layer_names_buffer, LV_ROLLER_MODE_INFINITE);
+    }
+    return sel;
 }
 
 static void layer_roller_update_cb(struct layer_roller_state state) {
     struct zmk_widget_layer_roller *widget;
-    if (state.index >= VISIBLE_LAYERS) {
-        return; // hidden layer: keep showing the current selection
-    }
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        layer_roller_set_sel(widget->obj, state);
+        int sel = layer_roller_refresh(widget->obj, state.index);
+        if (sel >= 0) { // hidden layer: keep showing the current selection
+            lv_roller_set_selected(widget->obj, sel, LV_ANIM_ON);
+        }
     }
 }
 
@@ -53,39 +74,7 @@ int zmk_widget_layer_roller_init(struct zmk_widget_layer_roller *widget, lv_obj_
     widget->obj = lv_roller_create(parent);
 
     layer_names_buffer[0] = '\0';
-    char *ptr = layer_names_buffer;
-
-    for (int i = 0; i < VISIBLE_LAYERS; i++) {
-        const char *layer_name = zmk_keymap_layer_name(zmk_keymap_layer_index_to_id(i));
-        if (layer_name) {
-            if (i > 0) {
-                strcat(ptr, "\n");
-                ptr += strlen(ptr);
-            }
-
-            if (layer_name && *layer_name) {
-#if IS_ENABLED(CONFIG_LAYER_ROLLER_ALL_CAPS)
-                while (*layer_name) {
-                    *ptr = toupper((unsigned char)*layer_name);
-                    ptr++;
-                    layer_name++;
-                }
-                *ptr = '\0';
-#else
-                strcat(ptr, layer_name);
-                ptr += strlen(layer_name);
-#endif
-            } else {
-                // Just use the number for unnamed layers
-                char index_str[12];
-                snprintf(index_str, sizeof(index_str), "%d", i);
-                strcat(ptr, index_str);
-                ptr += strlen(index_str);
-            }
-        }
-    }
-
-    lv_roller_set_options(widget->obj, layer_names_buffer, LV_ROLLER_MODE_INFINITE);
+    layer_roller_refresh(widget->obj, zmk_keymap_highest_layer_active());
 
     static lv_style_t style;
     lv_style_init(&style);

@@ -40,11 +40,12 @@ config PROSPECTOR_ZAPPY_BIRDS
       Adds the &zappy (toggle game mode) and &zflap (flap) behaviors and the
       game screen. Pair with a keymap layer of &zflap bindings.
 
-config PROSPECTOR_ROLLER_HIDDEN_TRAILING_LAYERS
-    int "Number of trailing keymap layers to hide from the layer roller"
-    range 0 8
-    default 1 if PROSPECTOR_ZAPPY_BIRDS
-    default 0
+config PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME
+    string "Display name of a keymap layer to leave out of the layer roller"
+    default "Zappy" if PROSPECTOR_ZAPPY_BIRDS
+    default ""
+    help
+      Matched by name, so it keeps working when ZMK Studio reorders layers.
 
 config PROSPECTOR_MATRIX_SCREENSAVER
     bool "Matrix rain screensaver (half-width katakana) on the dongle screen"

@@ -40,7 +40,6 @@ static lv_obj_t *status_screen;
 static lv_timer_t *timer;
 static uint16_t saved_best, saved_best_hard;
 static struct zappy_pool pool;
-static bool pool_built;
 static uint32_t last_tick_ms, step_acc;
 
 /* LVGL runs every CONFIG_ZMK_DISPLAY_TICK_PERIOD_MS (10 ms), so a 33 ms
@@ -68,7 +67,6 @@ static void build_pool(void) {
         uint32_t usage = strcmp(b->behavior_dev, "key_press") == 0 ? b->param1 : b->param2;
         zappy_pool_add(&pool, (uint8_t)i, usage);
     }
-    pool_built = true;
     LOG_INF("zappy: %u letter keys, H at %u", pool.n, pool.h_pos);
 }
 
@@ -141,8 +139,7 @@ static void show_game(void) {
     lv_obj_t *scr = zappy_screen_create();
     if (cur != scr)
         status_screen = cur;
-    if (!pool_built)
-        build_pool();
+    build_pool(); /* every game: picks up keys remapped in ZMK Studio */
     saved_best = (uint16_t)atomic_get(&best);
     saved_best_hard = (uint16_t)atomic_get(&best_hard);
     zappy_init(&game, saved_best, saved_best_hard, k_cycle_get_32() | 1, &pool);
