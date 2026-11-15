@@ -1,3 +1,4 @@
 tests/zappy/test_core
 tests/matrix/test_core
 tests/backlight/test_levels
+tests/roller/test_roller
