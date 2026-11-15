@@ -23,6 +23,19 @@
 #define ZAPPY_EXIT_IDLE_MS 300 /* exit combo needs this long without a flap */
 
 enum zappy_phase { ZAPPY_TITLE, ZAPPY_PLAYING, ZAPPY_CRASHED };
+enum zappy_mode { ZAPPY_NORMAL, ZAPPY_HARD };
+
+#define ZAPPY_MAX_POOL 42
+#define ZAPPY_NO_POS 0xFF
+#define ZAPPY_HARD_GAP_H (ZAPPY_GAP_H + 24)
+
+/* Letter keys usable as hard-mode targets: key position + its letter. */
+struct zappy_pool {
+    uint8_t n;
+    uint8_t pos[ZAPPY_MAX_POOL];
+    char letter[ZAPPY_MAX_POOL];
+    uint8_t h_pos; /* position of 'H', or ZAPPY_NO_POS */
+};
 
 struct zappy_pylon {
     int16_t x;
@@ -41,11 +54,27 @@ struct zappy_game {
     uint32_t rng;      /* xorshift32 state, never 0 */
     uint8_t flap_frames; /* >0 while showing flap pose */
     uint16_t ticks;      /* frame counter (title bob, animation) */
+    enum zappy_mode mode;
+    uint16_t best_hard;
+    int16_t gap_h;          /* gap height for the current mode */
+    struct zappy_pool pool;
+    uint8_t target;         /* hard mode: index into pool */
 };
 
-void zappy_init(struct zappy_game *g, uint16_t best, uint32_t seed);
-/* Returns true if the press did something (start, flap, restart). */
-bool zappy_press(struct zappy_game *g, uint32_t now_ms);
+/* 'A'..'Z' for keyboard-page usages A..Z (mod bits ignored), else 0 */
+char zappy_usage_letter(uint32_t usage);
+/* Adds position if usage is a letter; records h_pos; ignores when full. */
+void zappy_pool_add(struct zappy_pool *p, uint8_t position, uint32_t usage);
+
+/* pool may be NULL (no hard mode). */
+void zappy_init(struct zappy_game *g, uint16_t best, uint16_t best_hard, uint32_t seed,
+                const struct zappy_pool *pool);
+/* Key at `position` pressed. Returns true if it did something (start, flap,
+ * restart). On the title, H starts hard mode (pool of 2+ letters); in hard
+ * play only the target key flaps. */
+bool zappy_press(struct zappy_game *g, uint32_t now_ms, uint8_t position);
+/* Current target letter in hard mode, else 0. */
+char zappy_target_letter(const struct zappy_game *g);
 void zappy_step(struct zappy_game *g, uint32_t now_ms);
 int16_t zappy_bird_y(const struct zappy_game *g);
 /* Fixed timestep: add elapsed ms to *acc, return how many zappy_step()s

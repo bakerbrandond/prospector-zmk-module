@@ -8,6 +8,7 @@
 
 /* Feel constants, per tick (24.8 fixed point). */
 #define GRAVITY_FP 115     /* ~0.45 px/tick^2 */
+#define HARD_GRAVITY_FP 80 /* ~70%: time to find the next key */
 #define FLAP_VEL_FP (-1600) /* ~-6.25 px/tick */
 #define MAX_FALL_FP 2304   /* 9 px/tick */
 #define SCROLL_PX 2        /* ~60 px/s */
@@ -16,7 +17,6 @@
 #define PYLON_SPACING (ZAPPY_W / ZAPPY_NUM_PYLONS + ZAPPY_PYLON_W)
 #define FIRST_PYLON_X (ZAPPY_W + 40)
 #define GAP_TOP_MIN ZAPPY_MARGIN
-#define GAP_TOP_RANGE (ZAPPY_H - ZAPPY_MARGIN - ZAPPY_GAP_H - GAP_TOP_MIN + 1)
 
 #define BOB_PERIOD 48 /* ticks */
 #define BOB_AMPL 6    /* px */
@@ -31,7 +31,36 @@ static uint32_t next_rand(struct zappy_game *g) {
 }
 
 static int16_t random_gap_top(struct zappy_game *g) {
-    return (int16_t)(GAP_TOP_MIN + (int32_t)(next_rand(g) % GAP_TOP_RANGE));
+    int32_t range = ZAPPY_H - ZAPPY_MARGIN - g->gap_h - GAP_TOP_MIN + 1;
+    return (int16_t)(GAP_TOP_MIN + (int32_t)(next_rand(g) % (uint32_t)range));
+}
+
+static void pick_target(struct zappy_game *g) {
+    /* uniform over the other n-1 letters, so it never repeats */
+    uint8_t skip = (uint8_t)(1 + next_rand(g) % (uint32_t)(g->pool.n - 1));
+    g->target = (uint8_t)((g->target + skip) % g->pool.n);
+}
+
+char zappy_usage_letter(uint32_t usage) {
+    uint32_t page = (usage >> 16) & 0xFF, id = usage & 0xFFFF;
+    if (page != 0x07 || id < 0x04 || id > 0x1D)
+        return 0;
+    return (char)('A' + (id - 0x04));
+}
+
+void zappy_pool_add(struct zappy_pool *p, uint8_t position, uint32_t usage) {
+    char c = zappy_usage_letter(usage);
+    if (!c || p->n >= ZAPPY_MAX_POOL)
+        return;
+    p->pos[p->n] = position;
+    p->letter[p->n] = c;
+    p->n++;
+    if (c == 'H')
+        p->h_pos = position;
+}
+
+char zappy_target_letter(const struct zappy_game *g) {
+    return g->mode == ZAPPY_HARD ? g->pool.letter[g->target] : 0;
 }
 
 static int32_t start_y_fp(void) { return FP(ZAPPY_H / 2 - ZAPPY_BIRD_SIZE / 2); }
@@ -41,7 +70,11 @@ static void flap(struct zappy_game *g) {
     g->flap_frames = FLAP_FRAMES;
 }
 
-static void start_run(struct zappy_game *g) {
+static void start_run(struct zappy_game *g, enum zappy_mode mode) {
+    g->mode = mode;
+    g->gap_h = mode == ZAPPY_HARD ? ZAPPY_HARD_GAP_H : ZAPPY_GAP_H;
+    if (mode == ZAPPY_HARD)
+        pick_target(g);
     g->phase = ZAPPY_PLAYING;
     g->score = 0;
     g->new_best = false;
@@ -54,26 +87,39 @@ static void start_run(struct zappy_game *g) {
     flap(g);
 }
 
-void zappy_init(struct zappy_game *g, uint16_t best, uint32_t seed) {
+void zappy_init(struct zappy_game *g, uint16_t best, uint16_t best_hard, uint32_t seed,
+                const struct zappy_pool *pool) {
     *g = (struct zappy_game){0};
     g->phase = ZAPPY_TITLE;
     g->best = best;
+    g->best_hard = best_hard;
+    g->gap_h = ZAPPY_GAP_H;
+    g->pool.h_pos = ZAPPY_NO_POS;
+    if (pool)
+        g->pool = *pool;
     g->rng = seed ? seed : 0x5eed1234u;
     g->bird_y_fp = start_y_fp();
 }
 
-bool zappy_press(struct zappy_game *g, uint32_t now_ms) {
+bool zappy_press(struct zappy_game *g, uint32_t now_ms, uint8_t position) {
     switch (g->phase) {
-    case ZAPPY_TITLE:
-        start_run(g);
+    case ZAPPY_TITLE: {
+        bool hard = position == g->pool.h_pos && g->pool.h_pos != ZAPPY_NO_POS && g->pool.n >= 2;
+        start_run(g, hard ? ZAPPY_HARD : ZAPPY_NORMAL);
         return true;
+    }
     case ZAPPY_PLAYING:
+        if (g->mode == ZAPPY_HARD) {
+            if (position != g->pool.pos[g->target])
+                return false; /* wrong key: no flap */
+            pick_target(g);
+        }
         flap(g);
         return true;
     case ZAPPY_CRASHED:
         if ((uint32_t)(now_ms - g->crash_ms) < ZAPPY_CRASH_LOCKOUT_MS)
             return false;
-        start_run(g);
+        start_run(g, g->mode);
         return true;
     }
     return false;
@@ -82,8 +128,9 @@ bool zappy_press(struct zappy_game *g, uint32_t now_ms) {
 static void crash(struct zappy_game *g, uint32_t now_ms) {
     g->phase = ZAPPY_CRASHED;
     g->crash_ms = now_ms;
-    if (g->score > g->best) {
-        g->best = g->score;
+    uint16_t *best = g->mode == ZAPPY_HARD ? &g->best_hard : &g->best;
+    if (g->score > *best) {
+        *best = g->score;
         g->new_best = true;
     }
 }
@@ -96,11 +143,11 @@ static int16_t rightmost_x(const struct zappy_game *g) {
     return x;
 }
 
-static bool hits_pylon(const struct zappy_pylon *p, int16_t by) {
+static bool hits_pylon(const struct zappy_pylon *p, int16_t by, int16_t gap_h) {
     bool x_overlap = ZAPPY_BIRD_X + ZAPPY_BIRD_SIZE > p->x && ZAPPY_BIRD_X < p->x + ZAPPY_PYLON_W;
     if (!x_overlap)
         return false;
-    return by < p->gap_top || by + ZAPPY_BIRD_SIZE > p->gap_top + ZAPPY_GAP_H;
+    return by < p->gap_top || by + ZAPPY_BIRD_SIZE > p->gap_top + gap_h;
 }
 
 void zappy_step(struct zappy_game *g, uint32_t now_ms) {
@@ -120,7 +167,7 @@ void zappy_step(struct zappy_game *g, uint32_t now_ms) {
         return;
 
     /* bird */
-    g->vel_fp += GRAVITY_FP;
+    g->vel_fp += g->mode == ZAPPY_HARD ? HARD_GRAVITY_FP : GRAVITY_FP;
     if (g->vel_fp > MAX_FALL_FP)
         g->vel_fp = MAX_FALL_FP;
     g->bird_y_fp += g->vel_fp;
@@ -152,7 +199,7 @@ void zappy_step(struct zappy_game *g, uint32_t now_ms) {
         return;
     }
     for (int i = 0; i < ZAPPY_NUM_PYLONS; i++) {
-        if (hits_pylon(&g->pylons[i], by)) {
+        if (hits_pylon(&g->pylons[i], by, g->gap_h)) {
             crash(g, now_ms);
             return;
         }
