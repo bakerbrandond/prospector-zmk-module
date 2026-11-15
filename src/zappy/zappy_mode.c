@@ -24,6 +24,7 @@
 
 #include "zappy_core.h"
 #include "zappy_screen.h"
+#include "../matrix/matrix_mode.h"
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -46,6 +47,9 @@ static uint32_t last_tick_ms, step_acc;
  * timer really fires every 40 ms. Poll each pass and step on a fixed
  * ZAPPY_TICK_MS timestep instead, so game speed follows real time. */
 #define POLL_MS 10
+
+/* Overridden by the matrix screensaver when it's built. */
+__weak void matrix_mode_hide_now(void) {}
 
 __weak void zappy_store_save(enum zappy_mode m, uint16_t b) {
     ARG_UNUSED(m);
@@ -127,6 +131,7 @@ static void tick_cb(lv_timer_t *t) {
 }
 
 static void show_game(void) {
+    matrix_mode_hide_now(); /* never save the screensaver as the status screen */
     lv_obj_t *cur = lv_scr_act();
     if (!zmk_display_is_initialized() || !cur) {
         LOG_WRN("zappy: display not ready, leaving game mode");

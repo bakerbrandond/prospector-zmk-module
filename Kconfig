@@ -45,3 +45,17 @@ config PROSPECTOR_ROLLER_HIDDEN_TRAILING_LAYERS
     range 0 8
     default 1 if PROSPECTOR_ZAPPY_BIRDS
     default 0
+
+config PROSPECTOR_MATRIX_SCREENSAVER
+    bool "Matrix rain screensaver (half-width katakana) on the dongle screen"
+    default n
+    depends on SHIELD_PROSPECTOR_ADAPTER
+
+config PROSPECTOR_MATRIX_TIMEOUT_S
+    int "Seconds without a key press before the screensaver starts"
+    range 30 3600
+    default 120
+    depends on PROSPECTOR_MATRIX_SCREENSAVER
+    help
+      Must be at least CONFIG_ZMK_IDLE_TIMEOUT (30 s by default): the
+      countdown starts when ZMK reports idle.

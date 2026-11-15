@@ -57,3 +57,8 @@
 #define THEME_WPM_FILL NORD1
 #define THEME_FONT_WPM CaskaydiaCove_SemiBold_32
 #define THEME_FONT_WPM_LABEL CaskaydiaCove_SemiBold_20
+
+// Matrix rain screensaver
+#define THEME_MATRIX_HEAD NORD6
+#define THEME_MATRIX_TRAIL NORD14
+#define THEME_FONT_MATRIX NotoSansMonoCJKJP_Katakana_18
