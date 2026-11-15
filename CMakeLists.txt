@@ -24,6 +24,7 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
                 zephyr_library_sources(src/zappy/zappy_core.c)
                 zephyr_library_sources(src/zappy/zappy_screen.c)
                 zephyr_library_sources(src/zappy/zappy_mode.c)
+                zephyr_library_sources(src/zappy/zappy_store.c)
                 zephyr_library_sources(src/behaviors/behavior_zappy.c)
         endif()
 

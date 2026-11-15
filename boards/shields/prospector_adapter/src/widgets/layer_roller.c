@@ -14,6 +14,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 static char layer_names_buffer[256] = {0}; // Buffer for concatenated layer names
 
+// Trailing layers left out of the roller (e.g. the Zappy Birds game layer)
+#define VISIBLE_LAYERS (ZMK_KEYMAP_LAYERS_LEN - CONFIG_PROSPECTOR_ROLLER_HIDDEN_TRAILING_LAYERS)
+
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct layer_roller_state {
@@ -26,6 +29,9 @@ static void layer_roller_set_sel(lv_obj_t *roller, struct layer_roller_state sta
 
 static void layer_roller_update_cb(struct layer_roller_state state) {
     struct zmk_widget_layer_roller *widget;
+    if (state.index >= VISIBLE_LAYERS) {
+        return; // hidden layer: keep showing the current selection
+    }
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
         layer_roller_set_sel(widget->obj, state);
     }
@@ -100,7 +106,7 @@ int zmk_widget_layer_roller_init(struct zmk_widget_layer_roller *widget, lv_obj_
     layer_names_buffer[0] = '\0';
     char *ptr = layer_names_buffer;
 
-    for (int i = 0; i < ZMK_KEYMAP_LAYERS_LEN; i++) {
+    for (int i = 0; i < VISIBLE_LAYERS; i++) {
         const char *layer_name = zmk_keymap_layer_name(zmk_keymap_layer_index_to_id(i));
         if (layer_name) {
             if (i > 0) {
