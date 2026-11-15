@@ -1,132 +1,166 @@
 #include "battery_bar.h"
 
+#include <string.h>
+
 #include <zmk/display.h>
 #include <zmk/battery.h>
 #include <zmk/ble.h>
 #include <zmk/events/battery_state_changed.h>
 #include <zmk/events/split_central_status_changed.h>
 #include <zmk/event_manager.h>
+#include <zmk/split/central.h>
 
 #include <fonts.h>
+#include <theme.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
+#define LOW_BATTERY_PERCENT 20
+
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
-bool initialized = false;
-
-// Simplified state structures for each event type
-struct battery_update_state {
-    uint8_t source;
+/*
+ * Per-peripheral state, updated from events at any time (even before the
+ * display exists) and redrawn in full on the display work queue.
+ *
+ * ZMK_DISPLAY_WIDGET_LISTENER keeps a single "latest state" per listener and
+ * drops events raised before the display is initialized. With two halves
+ * connecting at nearly the same moment (e.g. right after the dongle boots),
+ * one half's connect event was overwritten before the redraw ran, so its
+ * battery never appeared until it reconnected. Keeping a slot table avoids
+ * losing either event.
+ */
+struct peripheral_state {
+    bool connected;
+    bool has_level;
     uint8_t level;
 };
 
-struct connection_update_state {
-    uint8_t source;
+// What is currently drawn, so redraws only animate real changes
+struct drawn_state {
+    bool valid;
     bool connected;
+    int level;
 };
 
-static void set_battery_bar_value(lv_obj_t *widget, struct battery_update_state state) {
-    if (initialized) {
-        lv_obj_t *info_container = lv_obj_get_child(widget, state.source);
-        lv_obj_t *bar = lv_obj_get_child(info_container, 0);
-        lv_obj_t *num = lv_obj_get_child(info_container, 1);
+K_MUTEX_DEFINE(state_mutex);
+static struct peripheral_state peripherals[ZMK_SPLIT_BLE_PERIPHERAL_COUNT];
+static struct drawn_state drawn[ZMK_SPLIT_BLE_PERIPHERAL_COUNT];
 
-        lv_bar_set_value(bar, state.level, LV_ANIM_ON);
-        lv_label_set_text_fmt(num, "%d", state.level);
+static void draw_level(lv_obj_t *info_container, uint8_t level) {
+    lv_obj_t *bar = lv_obj_get_child(info_container, 0);
+    lv_obj_t *num = lv_obj_get_child(info_container, 1);
+    bool low = level < LOW_BATTERY_PERCENT;
 
-        if (state.level < 20) {
-            lv_obj_set_style_bg_color(bar, lv_color_hex(0xD3900F), LV_PART_INDICATOR);
-            lv_obj_set_style_bg_grad_color(bar, lv_color_hex(0xE8AC11), LV_PART_INDICATOR);
-            lv_obj_set_style_bg_color(bar, lv_color_hex(0x6E4E07), LV_PART_MAIN);
-            lv_obj_set_style_text_color(num, lv_color_hex(0xFFB802), 0);
-        } else {
-            lv_obj_set_style_bg_color(bar, lv_color_hex(0x909090), LV_PART_INDICATOR);
-            lv_obj_set_style_bg_grad_color(bar, lv_color_hex(0xf0f0f0), LV_PART_INDICATOR);
-            lv_obj_set_style_bg_color(bar, lv_color_hex(0x202020), LV_PART_MAIN);
-            lv_obj_set_style_text_color(num, lv_color_hex(0xFFFFFF), 0);
-        }
+    lv_bar_set_value(bar, level, LV_ANIM_ON);
+    lv_label_set_text_fmt(num, "%d", level);
+
+    lv_obj_set_style_bg_color(bar, lv_color_hex(low ? THEME_BATTERY_LOW : THEME_BATTERY_FILL),
+                              LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(low ? THEME_BATTERY_LOW_TRACK : THEME_BATTERY_TRACK),
+                              LV_PART_MAIN);
+    lv_obj_set_style_text_color(num, lv_color_hex(low ? THEME_BATTERY_LOW : THEME_BATTERY_TEXT), 0);
+}
+
+static void draw_connected(lv_obj_t *info_container, bool connected) {
+    lv_obj_t *bar = lv_obj_get_child(info_container, 0);
+    lv_obj_t *num = lv_obj_get_child(info_container, 1);
+    lv_obj_t *nc_bar = lv_obj_get_child(info_container, 2);
+    lv_obj_t *nc_num = lv_obj_get_child(info_container, 3);
+
+    if (connected) {
+        lv_obj_fade_out(nc_bar, 150, 0);
+        lv_obj_fade_out(nc_num, 150, 0);
+        lv_obj_fade_in(bar, 150, 250);
+        lv_obj_fade_in(num, 150, 250);
+    } else {
+        lv_obj_fade_out(bar, 150, 0);
+        lv_obj_fade_out(num, 150, 0);
+        lv_obj_fade_in(nc_bar, 150, 250);
+        lv_obj_fade_in(nc_num, 150, 250);
     }
 }
 
-static void set_battery_bar_connected(lv_obj_t *widget, struct connection_update_state state) {
-    if (initialized) {
-        lv_obj_t *info_container = lv_obj_get_child(widget, state.source);
-        lv_obj_t *bar = lv_obj_get_child(info_container, 0);
-        lv_obj_t *num = lv_obj_get_child(info_container, 1);
-        lv_obj_t *nc_bar = lv_obj_get_child(info_container, 2);
-        lv_obj_t *nc_num = lv_obj_get_child(info_container, 3);
+static void redraw_work_cb(struct k_work *work) {
+    struct peripheral_state snapshot[ZMK_SPLIT_BLE_PERIPHERAL_COUNT];
 
-        LOG_DBG("Peripheral %d %s", state.source,
-                state.connected ? "connected" : "disconnected");
-
-        if (state.connected) {
-            lv_obj_fade_out(nc_bar, 150, 0);
-            lv_obj_fade_out(nc_num, 150, 0);
-            lv_obj_fade_in(bar, 150, 250);
-            lv_obj_fade_in(num, 150, 250);
-        } else {
-            lv_obj_fade_out(bar, 150, 0);
-            lv_obj_fade_out(num, 150, 0);
-            lv_obj_fade_in(nc_bar, 150, 250);
-            lv_obj_fade_in(nc_num, 150, 250);
-        }
-    }
-}
-
-// Battery event handling
-void battery_bar_battery_update_cb(struct battery_update_state state) {
-    LOG_DBG("Battery update: source=%d, level=%d", state.source, state.level);
+    k_mutex_lock(&state_mutex, K_FOREVER);
+    memcpy(snapshot, peripherals, sizeof(snapshot));
+    k_mutex_unlock(&state_mutex);
 
     struct zmk_widget_battery_bar *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        set_battery_bar_value(widget->obj, state);
+        for (int i = 0; i < ZMK_SPLIT_BLE_PERIPHERAL_COUNT; i++) {
+            lv_obj_t *info_container = lv_obj_get_child(widget->obj, i);
+            if (info_container == NULL) {
+                continue;
+            }
+
+            if (snapshot[i].has_level && (!drawn[i].valid || drawn[i].level != snapshot[i].level)) {
+                draw_level(info_container, snapshot[i].level);
+                drawn[i].level = snapshot[i].level;
+            }
+
+            if (!drawn[i].valid || drawn[i].connected != snapshot[i].connected) {
+                LOG_DBG("Peripheral %d %s", i, snapshot[i].connected ? "connected" : "disconnected");
+                draw_connected(info_container, snapshot[i].connected);
+                drawn[i].connected = snapshot[i].connected;
+            }
+
+            drawn[i].valid = true;
+        }
     }
 }
 
-static struct battery_update_state battery_bar_get_battery_state(const zmk_event_t *eh) {
+static K_WORK_DEFINE(redraw_work, redraw_work_cb);
+
+static void schedule_redraw(void) {
+    if (zmk_display_is_initialized()) {
+        k_work_submit_to_queue(zmk_display_work_q(), &redraw_work);
+    }
+}
+
+static int battery_bar_event_listener(const zmk_event_t *eh) {
     const struct zmk_peripheral_battery_state_changed *bat_ev =
         as_zmk_peripheral_battery_state_changed(eh);
-
-    LOG_DBG("Received battery event: source=%d, level=%d", bat_ev->source, bat_ev->state_of_charge);
-
-    return (struct battery_update_state){
-        .source = bat_ev->source,
-        .level = bat_ev->state_of_charge,
-    };
-}
-
-// Connection event handling
-void battery_bar_connection_update_cb(struct connection_update_state state) {
-    LOG_DBG("Connection update: source=%d, connected=%s", state.source, state.connected ? "true" : "false");
-
-    struct zmk_widget_battery_bar *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        set_battery_bar_connected(widget->obj, state);
-    }
-}
-
-static struct connection_update_state battery_bar_get_connection_state(const zmk_event_t *eh) {
     const struct zmk_split_central_status_changed *conn_ev =
         as_zmk_split_central_status_changed(eh);
 
-    LOG_DBG("Received connection event: slot=%d, connected=%s", conn_ev->slot, conn_ev->connected ? "true" : "false");
+    k_mutex_lock(&state_mutex, K_FOREVER);
+    if (bat_ev != NULL && bat_ev->source < ZMK_SPLIT_BLE_PERIPHERAL_COUNT) {
+        LOG_DBG("Battery event: source=%d, level=%d", bat_ev->source, bat_ev->state_of_charge);
+        peripherals[bat_ev->source].level = bat_ev->state_of_charge;
+        peripherals[bat_ev->source].has_level = true;
+    } else if (conn_ev != NULL && conn_ev->slot < ZMK_SPLIT_BLE_PERIPHERAL_COUNT) {
+        LOG_DBG("Connection event: slot=%d, connected=%d", conn_ev->slot, conn_ev->connected);
+        peripherals[conn_ev->slot].connected = conn_ev->connected;
+    }
+    k_mutex_unlock(&state_mutex);
 
-    return (struct connection_update_state){
-        .source = conn_ev->slot,
-        .connected = conn_ev->connected,
-    };
+    schedule_redraw();
+    return ZMK_EV_EVENT_BUBBLE;
 }
 
-// Separate widget listeners for each event type
-ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_bar_battery, struct battery_update_state,
-                            battery_bar_battery_update_cb, battery_bar_get_battery_state);
-ZMK_SUBSCRIPTION(widget_battery_bar_battery, zmk_peripheral_battery_state_changed);
+ZMK_LISTENER(widget_battery_bar, battery_bar_event_listener);
+ZMK_SUBSCRIPTION(widget_battery_bar, zmk_peripheral_battery_state_changed);
+ZMK_SUBSCRIPTION(widget_battery_bar, zmk_split_central_status_changed);
 
-ZMK_DISPLAY_WIDGET_LISTENER(widget_battery_bar_connection, struct connection_update_state,
-                            battery_bar_connection_update_cb, battery_bar_get_connection_state);
-ZMK_SUBSCRIPTION(widget_battery_bar_connection, zmk_split_central_status_changed);
+// Fill in battery levels ZMK already knows about but we have no event for
+static void seed_battery_levels(void) {
+#if IS_ENABLED(CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING)
+    k_mutex_lock(&state_mutex, K_FOREVER);
+    for (uint8_t i = 0; i < ZMK_SPLIT_BLE_PERIPHERAL_COUNT; i++) {
+        uint8_t level;
+        if (!peripherals[i].has_level &&
+            zmk_split_central_get_peripheral_battery_level(i, &level) == 0 && level > 0) {
+            peripherals[i].level = level;
+            peripherals[i].has_level = true;
+        }
+    }
+    k_mutex_unlock(&state_mutex);
+#endif
+}
 
 int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
@@ -138,12 +172,8 @@ int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t 
                           LV_FLEX_ALIGN_CENTER        // Track alignment
     );
     lv_obj_set_style_pad_column(widget->obj, 12, LV_PART_MAIN);
-    // lv_obj_set_style_pad_all(widget->obj, 8, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(widget->obj, 12, LV_PART_MAIN);
-    // lv_obj_set_style_pad_top(widget->obj, 30, LV_PART_MAIN);
     lv_obj_set_style_pad_hor(widget->obj, 16, LV_PART_MAIN);
-
-    // lv_obj_add_flag(widget->obj, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
     for (int i = 0; i < ZMK_SPLIT_BLE_PERIPHERAL_COUNT; i++) {
         lv_obj_t *info_container = lv_obj_create(widget->obj);
@@ -154,39 +184,33 @@ int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t 
         lv_obj_t *bar = lv_bar_create(info_container);
         lv_obj_set_size(bar, lv_pct(100), 4);
         lv_obj_align(bar, LV_ALIGN_BOTTOM_MID, 0, 0);
-        lv_obj_set_style_bg_color(bar, lv_color_hex(0x202020), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(bar, lv_color_hex(THEME_BATTERY_TRACK), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(bar, 255, LV_PART_MAIN);
         lv_obj_set_style_radius(bar, 1, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(bar, lv_color_hex(0x909090), LV_PART_INDICATOR);
+        lv_obj_set_style_bg_color(bar, lv_color_hex(THEME_BATTERY_FILL), LV_PART_INDICATOR);
         lv_obj_set_style_bg_opa(bar, 255, LV_PART_INDICATOR);
-        lv_obj_set_style_bg_grad_color(bar, lv_color_hex(0xf0f0f0), LV_PART_INDICATOR);
-        lv_obj_set_style_bg_dither_mode(bar, LV_DITHER_ERR_DIFF, LV_PART_INDICATOR);
-        lv_obj_set_style_bg_grad_dir(bar, LV_GRAD_DIR_HOR, LV_PART_INDICATOR);
         lv_obj_set_style_radius(bar, 1, LV_PART_INDICATOR);
         lv_obj_set_style_anim_time(bar, 250, 0);
 
         lv_bar_set_value(bar, 0, LV_ANIM_OFF);
-        lv_obj_set_style_opa(bar, 0, LV_PART_MAIN);
-        lv_obj_set_style_opa(bar, 255, LV_PART_INDICATOR);
+        lv_obj_set_style_opa(bar, 0, 0); // hidden until connected
 
         lv_obj_t *num = lv_label_create(info_container);
-        lv_obj_set_style_text_font(num, &FoundryGridnikMedium_20, 0);
-        lv_obj_set_style_text_color(num, lv_color_white(), 0);
-        lv_obj_set_style_opa(num, 255, 0);
+        lv_obj_set_style_text_font(num, &THEME_FONT_BATTERY, 0);
+        lv_obj_set_style_text_color(num, lv_color_hex(THEME_BATTERY_TEXT), 0);
         lv_obj_align(num, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_text(num, "N/A");
-
-        lv_obj_set_style_opa(num, 0, 0);
+        lv_obj_set_style_opa(num, 0, 0); // hidden until connected
 
         lv_obj_t *nc_bar = lv_obj_create(info_container);
         lv_obj_set_size(nc_bar, lv_pct(100), 4);
         lv_obj_align(nc_bar, LV_ALIGN_BOTTOM_MID, 0, 0);
-        lv_obj_set_style_bg_color(nc_bar, lv_color_hex(0x9e2121), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(nc_bar, lv_color_hex(THEME_DISCONNECTED), LV_PART_MAIN);
         lv_obj_set_style_radius(nc_bar, 1, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(nc_bar, 255, 0);
 
         lv_obj_t *nc_num = lv_label_create(info_container);
-        lv_obj_set_style_text_color(nc_num, lv_color_hex(0xe63030), 0);
+        lv_obj_set_style_text_color(nc_num, lv_color_hex(THEME_DISCONNECTED), 0);
         lv_obj_align(nc_num, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_text(nc_num, LV_SYMBOL_CLOSE);
         lv_obj_set_style_opa(nc_num, 255, 0);
@@ -194,9 +218,10 @@ int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t 
 
     sys_slist_append(&widgets, &widget->node);
 
-    widget_battery_bar_battery_init();
-    widget_battery_bar_connection_init();
-    initialized = true;
+    // Draw whatever arrived before the screen existed. This runs on the
+    // display work queue, so call the redraw directly.
+    seed_battery_levels();
+    redraw_work_cb(NULL);
 
     return 0;
 }

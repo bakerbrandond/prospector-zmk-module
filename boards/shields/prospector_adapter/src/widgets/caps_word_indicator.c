@@ -6,6 +6,7 @@
 
 #include <fonts.h>
 #include <sf_symbols.h>
+#include <theme.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -18,9 +19,9 @@ struct caps_word_indicator_state {
 
 static void caps_word_indicator_set_active(lv_obj_t *label, struct caps_word_indicator_state state) {
     if (state.active) {
-        lv_obj_set_style_text_color(label, lv_color_hex(0x00ffe5), LV_PART_MAIN);
+        lv_obj_set_style_text_color(label, lv_color_hex(THEME_INDICATOR_ON), LV_PART_MAIN);
     } else {
-        lv_obj_set_style_text_color(label, lv_color_hex(0x202020), LV_PART_MAIN);
+        lv_obj_set_style_text_color(label, lv_color_hex(THEME_INDICATOR_OFF), LV_PART_MAIN);
     }
 }
 
@@ -51,7 +52,7 @@ int zmk_widget_caps_word_indicator_init(struct zmk_widget_caps_word_indicator *w
     // LV_FONT_DECLARE(SF_Compact_Text_Bold_32);
 
     lv_label_set_text(widget->obj, SF_SYMBOL_CHARACTER_CURSOR_IBEAM);
-    lv_obj_set_style_text_color(widget->obj, lv_color_hex(0x030303), LV_PART_MAIN);
+    lv_obj_set_style_text_color(widget->obj, lv_color_hex(THEME_INDICATOR_OFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(widget->obj, &SF_Compact_Text_Bold_32, LV_PART_MAIN);
     lv_obj_set_style_text_align(widget->obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 
