@@ -48,3 +48,13 @@
 #define THEME_FONT_LAYER_ACTIVE CaskaydiaCove_Regular_48
 #define THEME_FONT_LAYER_INACTIVE CaskaydiaCove_ExtraLight_48
 #define THEME_FONT_BATTERY CaskaydiaCove_SemiBold_20
+
+// WPM panel
+#define THEME_WPM_NUMBER NORD6
+#define THEME_WPM_IDLE NORD3
+#define THEME_WPM_LABEL NORD3
+#define THEME_WPM_LINE NORD8
+#define THEME_WPM_FILL NORD1
+#define THEME_WPM_DIVIDER NORD1
+#define THEME_FONT_WPM CaskaydiaCove_SemiBold_32
+#define THEME_FONT_WPM_LABEL CaskaydiaCove_Regular_14

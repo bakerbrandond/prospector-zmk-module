@@ -1,4 +1,4 @@
-CaskaydiaCove_*.c are bitmap conversions (lv_font_conv, ASCII 0x20-0x7E, 4 bpp)
+CaskaydiaCove_*.c are bitmap conversions (lv_font_conv, 4 bpp, ASCII subsets)
 of CaskaydiaCove Nerd Font Propo (https://github.com/ryanoasis/nerd-fonts),
 a renamed, patched build of Cascadia Code. Cascadia Code's license follows.
 

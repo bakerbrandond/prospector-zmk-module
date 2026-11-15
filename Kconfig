@@ -15,3 +15,16 @@ config PROSPECTOR_FIXED_BRIGHTNESS
     default 50
     range 1 100
     depends on !PROSPECTOR_USE_AMBIENT_LIGHT_SENSOR
+config PROSPECTOR_WPM_PANEL
+    bool "Show a words-per-minute panel (number + history graph)"
+    default y
+    depends on ZMK_WPM
+    select LV_USE_CHART
+
+config PROSPECTOR_ACTIVE_LAYER_Y
+    int "Vertical offset of the active layer name from the screen center"
+    default -42 if PROSPECTOR_WPM_PANEL
+    default -20
+    help
+      Read-only layout value for code that places its own objects level with
+      the active layer (e.g. extra indicators added from a user config).

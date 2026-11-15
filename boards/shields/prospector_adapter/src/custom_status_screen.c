@@ -6,6 +6,7 @@
 #include "widgets/layer_roller.h"
 #include "widgets/battery_bar.h"
 #include "widgets/caps_word_indicator.h"
+#include "widgets/wpm_panel.h"
 
 #include <fonts.h>
 #include <sf_symbols.h>
@@ -19,6 +20,9 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 static struct zmk_widget_layer_roller layer_roller_widget;
 static struct zmk_widget_battery_bar battery_bar_widget;
 static struct zmk_widget_caps_word_indicator caps_word_indicator_widget;
+#if IS_ENABLED(CONFIG_PROSPECTOR_WPM_PANEL)
+static struct zmk_widget_wpm_panel wpm_panel_widget;
+#endif
 
 lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *screen;
@@ -37,8 +41,22 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_align(zmk_widget_battery_bar_obj(&battery_bar_widget), LV_ALIGN_BOTTOM_MID, 0, 0);
 
     zmk_widget_layer_roller_init(&layer_roller_widget, screen);
+#if IS_ENABLED(CONFIG_PROSPECTOR_WPM_PANEL)
+    // Taller roller pulled up: the active layer sits at CONFIG_PROSPECTOR_ACTIVE_LAYER_Y
+    // with the previous layer peeking in (faded) above. The WPM panel, created
+    // after the roller so it draws on top, covers the next-layer row below.
+    lv_obj_set_size(zmk_widget_layer_roller_obj(&layer_roller_widget), 224, 156);
+#else
     lv_obj_set_size(zmk_widget_layer_roller_obj(&layer_roller_widget), 224, 140);
-    lv_obj_align(zmk_widget_layer_roller_obj(&layer_roller_widget), LV_ALIGN_LEFT_MID, 0, -20);
+#endif
+    lv_obj_align(zmk_widget_layer_roller_obj(&layer_roller_widget), LV_ALIGN_LEFT_MID, 0,
+                 CONFIG_PROSPECTOR_ACTIVE_LAYER_Y);
+
+#if IS_ENABLED(CONFIG_PROSPECTOR_WPM_PANEL)
+    zmk_widget_wpm_panel_init(&wpm_panel_widget, screen);
+    lv_obj_set_size(zmk_widget_wpm_panel_obj(&wpm_panel_widget), 204, 64);
+    lv_obj_align(zmk_widget_wpm_panel_obj(&wpm_panel_widget), LV_ALIGN_TOP_LEFT, 16, 124);
+#endif
 
 
     return screen;

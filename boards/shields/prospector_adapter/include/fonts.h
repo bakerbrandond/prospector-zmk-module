@@ -19,3 +19,5 @@ LV_FONT_DECLARE(FRAC_Regular_48);
 LV_FONT_DECLARE(CaskaydiaCove_Regular_48);
 LV_FONT_DECLARE(CaskaydiaCove_ExtraLight_48);
 LV_FONT_DECLARE(CaskaydiaCove_SemiBold_20);
+LV_FONT_DECLARE(CaskaydiaCove_SemiBold_32);
+LV_FONT_DECLARE(CaskaydiaCove_Regular_14);
