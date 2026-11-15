@@ -9,10 +9,10 @@
 
 #include <string.h>
 
-#define RESPAWN_WAIT_MAX 30
-#define INITIAL_WAIT_MAX 40
-#define TRAIL_MIN 6
-#define TRAIL_MAX 12
+#define RESPAWN_WAIT_MAX 8
+#define INITIAL_WAIT_MAX 20
+#define TRAIL_MIN 8
+#define TRAIL_MAX 14
 #define FLICKER_ONE_IN 8
 
 static uint32_t next_rand(struct matrix_state *m) {
