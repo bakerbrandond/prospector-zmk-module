@@ -162,7 +162,7 @@ void zappy_step(struct zappy_game *g, uint32_t now_ms) {
 int16_t zappy_bird_y(const struct zappy_game *g) { return (int16_t)(g->bird_y_fp >> 8); }
 
 bool zappy_exit_allowed(uint32_t now_ms, uint32_t last_flap_ms) {
-    return (uint32_t)(now_ms - last_flap_ms) >= ZAPPY_EXIT_IDLE_MS;
+    return (int32_t)(now_ms - last_flap_ms) >= ZAPPY_EXIT_IDLE_MS;
 }
 
 uint8_t zappy_steps_due(uint32_t *acc, uint32_t elapsed_ms) {
@@ -177,4 +177,8 @@ uint8_t zappy_steps_due(uint32_t *acc, uint32_t elapsed_ms) {
         n++;
     }
     return n;
+}
+
+bool zappy_idle_expired(uint32_t now_ms, uint32_t last_input_ms) {
+    return (int32_t)(now_ms - last_input_ms) > ZAPPY_IDLE_EXIT_MS;
 }

@@ -19,6 +19,7 @@
 #define ZAPPY_MARGIN 24 /* min distance of gap edge from top/bottom */
 #define ZAPPY_SCORE_MAX 9999
 #define ZAPPY_MAX_CATCHUP_STEPS 3 /* after a stall, don't fast-forward further */
+#define ZAPPY_IDLE_EXIT_MS 60000 /* leave game mode after this long untouched */
 #define ZAPPY_EXIT_IDLE_MS 300 /* exit combo needs this long without a flap */
 
 enum zappy_phase { ZAPPY_TITLE, ZAPPY_PLAYING, ZAPPY_CRASHED };
@@ -52,3 +53,6 @@ int16_t zappy_bird_y(const struct zappy_game *g);
 uint8_t zappy_steps_due(uint32_t *acc, uint32_t elapsed_ms);
 /* Exit only after a pause in flapping, so two-handed mashing can't quit. */
 bool zappy_exit_allowed(uint32_t now_ms, uint32_t last_flap_ms);
+/* True once ZAPPY_IDLE_EXIT_MS has passed with no input. Input stamped after
+ * now_ms (another thread, mid-tick) counts as fresh, not as a huge gap. */
+bool zappy_idle_expired(uint32_t now_ms, uint32_t last_input_ms);

@@ -196,6 +196,7 @@ static void test_deterministic_seed(void) {
 static void test_exit_needs_pause_after_flap(void) {
     /* combo exit only counts after ZAPPY_EXIT_IDLE_MS without a flap */
     assert(!zappy_exit_allowed(1000, 1000));
+    assert(!zappy_exit_allowed(1000, 1001)); /* flap stamped after now */
     assert(!zappy_exit_allowed(1000 + ZAPPY_EXIT_IDLE_MS - 1, 1000));
     assert(zappy_exit_allowed(1000 + ZAPPY_EXIT_IDLE_MS, 1000));
     /* uptime wrap */
@@ -212,6 +213,16 @@ static void test_steps_follow_real_time(void) {
     acc = 0;
     assert(zappy_steps_due(&acc, 5000) == ZAPPY_MAX_CATCHUP_STEPS);
     assert(acc < ZAPPY_TICK_MS);
+}
+
+static void test_idle_ignores_input_newer_than_now(void) {
+    /* a flap stamped just after the timer read the clock is not idle */
+    assert(!zappy_idle_expired(1000, 1001));
+    assert(!zappy_idle_expired(1000, 1000 + 50));
+    assert(!zappy_idle_expired(1000 + ZAPPY_IDLE_EXIT_MS, 1000));
+    assert(zappy_idle_expired(1000 + ZAPPY_IDLE_EXIT_MS + 1, 1000));
+    /* uptime wrap */
+    assert(zappy_idle_expired(ZAPPY_IDLE_EXIT_MS, 0xFFFFFFF0u));
 }
 
 int main(void) {
@@ -232,6 +243,7 @@ int main(void) {
     RUN(test_deterministic_seed);
     RUN(test_exit_needs_pause_after_flap);
     RUN(test_steps_follow_real_time);
+    RUN(test_idle_ignores_input_newer_than_now);
     printf("ok %d tests\n", n);
     return 0;
 }

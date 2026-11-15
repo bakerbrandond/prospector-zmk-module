@@ -23,8 +23,6 @@
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-#define IDLE_EXIT_MS 60000
-
 static atomic_t active;
 static atomic_t pending_flaps;
 static atomic_t last_input_ms;
@@ -79,7 +77,7 @@ static void tick_cb(lv_timer_t *t) {
         zappy_store_save(game.best);
     }
 
-    if (now - (uint32_t)atomic_get(&last_input_ms) > IDLE_EXIT_MS)
+    if (zappy_idle_expired(now, (uint32_t)atomic_get(&last_input_ms)))
         k_work_submit(&deactivate_work);
 }
 
