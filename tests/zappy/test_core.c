@@ -193,6 +193,15 @@ static void test_deterministic_seed(void) {
         assert(a.pylons[p].gap_top == b.pylons[p].gap_top);
 }
 
+static void test_exit_needs_pause_after_flap(void) {
+    /* combo exit only counts after ZAPPY_EXIT_IDLE_MS without a flap */
+    assert(!zappy_exit_allowed(1000, 1000));
+    assert(!zappy_exit_allowed(1000 + ZAPPY_EXIT_IDLE_MS - 1, 1000));
+    assert(zappy_exit_allowed(1000 + ZAPPY_EXIT_IDLE_MS, 1000));
+    /* uptime wrap */
+    assert(zappy_exit_allowed(ZAPPY_EXIT_IDLE_MS - 10, 0xFFFFFFF0u));
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -209,6 +218,7 @@ int main(void) {
     RUN(test_no_new_best_when_lower);
     RUN(test_long_run_stays_in_bounds);
     RUN(test_deterministic_seed);
+    RUN(test_exit_needs_pause_after_flap);
     printf("ok %d tests\n", n);
     return 0;
 }

@@ -2,6 +2,9 @@
  * Zappy Birds behaviors:
  *   &zappy LAYER  toggle game mode (activates/deactivates LAYER)
  *   &zflap        flap; sends nothing to the host
+ *
+ * Without CONFIG_PROSPECTOR_ZAPPY_BIRDS both are no-ops that still swallow
+ * the key press.
  */
 #include <zephyr/device.h>
 #include <drivers/behavior.h>
@@ -20,7 +23,8 @@ static __maybe_unused int zappy_released(struct zmk_behavior_binding *binding,
 
 static int zappy_toggle_pressed(struct zmk_behavior_binding *binding,
                                 struct zmk_behavior_binding_event event) {
-    zappy_mode_toggle((uint8_t)binding->param1);
+    if (IS_ENABLED(CONFIG_PROSPECTOR_ZAPPY_BIRDS))
+        zappy_mode_toggle((uint8_t)binding->param1);
     return ZMK_BEHAVIOR_OPAQUE;
 }
 
@@ -40,7 +44,8 @@ BEHAVIOR_DT_INST_DEFINE(0, NULL, NULL, NULL, NULL, POST_KERNEL,
 
 static int zappy_flap_pressed(struct zmk_behavior_binding *binding,
                               struct zmk_behavior_binding_event event) {
-    zappy_mode_flap();
+    if (IS_ENABLED(CONFIG_PROSPECTOR_ZAPPY_BIRDS))
+        zappy_mode_flap();
     return ZMK_BEHAVIOR_OPAQUE;
 }
 

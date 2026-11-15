@@ -111,7 +111,10 @@ void zappy_mode_toggle(uint8_t layer) {
         atomic_set(&layer_id, layer);
         atomic_set(&last_input_ms, (atomic_val_t)k_uptime_get_32());
         zmk_keymap_layer_activate(layer);
-    } else if (atomic_cas(&active, 1, 0)) {
+    } else if (zappy_exit_allowed(k_uptime_get_32(), (uint32_t)atomic_get(&last_input_ms)) &&
+               atomic_cas(&active, 1, 0)) {
+        /* ZMK's combo require-prior-idle-ms can't see &zflap presses (they
+         * emit no keycode), so the pause-before-exit guard lives here. */
         zmk_keymap_layer_deactivate((zmk_keymap_layer_id_t)atomic_get(&layer_id));
     }
     submit_sync();

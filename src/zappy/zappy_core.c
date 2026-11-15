@@ -160,3 +160,7 @@ void zappy_step(struct zappy_game *g, uint32_t now_ms) {
 }
 
 int16_t zappy_bird_y(const struct zappy_game *g) { return (int16_t)(g->bird_y_fp >> 8); }
+
+bool zappy_exit_allowed(uint32_t now_ms, uint32_t last_flap_ms) {
+    return (uint32_t)(now_ms - last_flap_ms) >= ZAPPY_EXIT_IDLE_MS;
+}

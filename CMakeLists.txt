@@ -19,13 +19,18 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
         zephyr_library_sources(src/events/split_central_status_changed.c)
         zephyr_library_sources(src/split/bluetooth/central_status_changed_observer.c)
 
+        # Built whenever the keymap has &zappy/&zflap nodes, so with the game
+        # off they are inert no-ops instead of falling through to lower layers.
+        if(CONFIG_DT_HAS_ZMK_BEHAVIOR_ZAPPY_TOGGLE_ENABLED OR CONFIG_DT_HAS_ZMK_BEHAVIOR_ZAPPY_FLAP_ENABLED)
+                zephyr_library_sources(src/behaviors/behavior_zappy.c)
+        endif()
+
         if(CONFIG_PROSPECTOR_ZAPPY_BIRDS)
                 zephyr_library_include_directories(boards/shields/prospector_adapter/include)
                 zephyr_library_sources(src/zappy/zappy_core.c)
                 zephyr_library_sources(src/zappy/zappy_screen.c)
                 zephyr_library_sources(src/zappy/zappy_mode.c)
                 zephyr_library_sources(src/zappy/zappy_store.c)
-                zephyr_library_sources(src/behaviors/behavior_zappy.c)
         endif()
 
 endif()

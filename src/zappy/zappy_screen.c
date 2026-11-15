@@ -62,12 +62,18 @@ static lv_obj_t *box(void) {
     return b;
 }
 
+/* Only touch flags/styles on change: every LVGL setter invalidates its object
+ * even when the value is unchanged, and the screen is the whole display. */
 static void set_hidden(lv_obj_t *o, bool hidden) {
+    if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) == hidden)
+        return;
     if (hidden)
         lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
     else
         lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN);
 }
+
+static int last_flash = -1, last_flap_pose = -1;
 
 lv_obj_t *zappy_screen_create(void) {
     if (screen)
@@ -175,7 +181,11 @@ void zappy_screen_render(const struct zappy_game *g) {
     /* bird: draw box centered on the collision box */
     int16_t off = (BIRD_DRAW - ZAPPY_BIRD_SIZE) / 2;
     lv_obj_set_pos(bird, ZAPPY_BIRD_X - off, zappy_bird_y(g) - off);
-    lv_line_set_points(bolt, g->flap_frames ? bolt_down : bolt_up, 4);
+    int pose = g->flap_frames ? 1 : 0;
+    if (pose != last_flap_pose) {
+        last_flap_pose = pose;
+        lv_line_set_points(bolt, pose ? bolt_down : bolt_up, 4);
+    }
 
     for (int i = 0; i < ZAPPY_NUM_PYLONS; i++) {
         bool show = !title;
@@ -203,6 +213,9 @@ void zappy_screen_render(const struct zappy_game *g) {
     }
 
     /* crash flash: a brief red sky, then back to night */
-    bool flash = crashed && (uint32_t)(k_uptime_get_32() - g->crash_ms) < FLASH_MS;
-    lv_obj_set_style_bg_color(screen, lv_color_hex(flash ? NORD11 : THEME_BG), LV_PART_MAIN);
+    int flash = crashed && (uint32_t)(k_uptime_get_32() - g->crash_ms) < FLASH_MS;
+    if (flash != last_flash) {
+        last_flash = flash;
+        lv_obj_set_style_bg_color(screen, lv_color_hex(flash ? NORD11 : THEME_BG), LV_PART_MAIN);
+    }
 }
