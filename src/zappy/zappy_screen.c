@@ -138,7 +138,7 @@ lv_obj_t *zappy_screen_create(void) {
     lv_obj_align(score_label, LV_ALIGN_TOP_MID, 0, 10);
 
     /* hard mode: big target letter on top, score in the corner */
-    target_label = label(screen, &FRAC_Regular_48, NORD13);
+    target_label = label(screen, &CaskaydiaCove_Regular_48, NORD13);
     lv_label_set_text_static(target_label, target_buf);
     lv_obj_align(target_label, LV_ALIGN_TOP_MID, 0, 14);
     hard_score_label = label(screen, &CaskaydiaCove_SemiBold_20, NORD6);
@@ -155,7 +155,7 @@ lv_obj_t *zappy_screen_create(void) {
     over_box = box();
     over_mode = label(over_box, &CaskaydiaCove_SemiBold_20, NORD12);
     lv_label_set_text_static(over_mode, "HARD");
-    over_score = label(over_box, &FRAC_Regular_48, NORD6);
+    over_score = label(over_box, &CaskaydiaCove_Regular_48, NORD6);
     lv_label_set_text_static(over_score, over_score_buf);
     over_best = label(over_box, &CaskaydiaCove_SemiBold_20, NORD8);
     lv_label_set_text_static(over_best, over_best_buf);
