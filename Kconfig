@@ -23,7 +23,7 @@ config PROSPECTOR_WPM_PANEL
 
 config PROSPECTOR_ACTIVE_LAYER_Y
     int "Vertical offset of the active layer name from the screen center"
-    default -42 if PROSPECTOR_WPM_PANEL
+    default -62 if PROSPECTOR_WPM_PANEL
     default -20
     help
       Read-only layout value for code that places its own objects level with

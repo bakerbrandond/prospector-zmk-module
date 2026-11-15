@@ -86,7 +86,7 @@ static void sample(lv_timer_t *timer) {
 int zmk_widget_wpm_panel_init(struct zmk_widget_wpm_panel *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_remove_style_all(widget->obj);
-    // Opaque so it covers the layer roller's next-layer row underneath
+    // Opaque background for the panel
     lv_obj_set_style_bg_color(widget->obj, lv_color_hex(THEME_BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(widget->obj, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_side(widget->obj, LV_BORDER_SIDE_TOP, LV_PART_MAIN);
@@ -105,7 +105,7 @@ int zmk_widget_wpm_panel_init(struct zmk_widget_wpm_panel *widget, lv_obj_t *par
     lv_obj_set_style_text_font(label, &THEME_FONT_WPM_LABEL, LV_PART_MAIN);
     lv_obj_set_style_text_color(label, lv_color_hex(THEME_WPM_LABEL), LV_PART_MAIN);
     lv_label_set_text(label, "wpm");
-    lv_obj_align_to(label, number, LV_ALIGN_OUT_BOTTOM_LEFT, 2, -4);
+    lv_obj_align_to(label, number, LV_ALIGN_OUT_BOTTOM_LEFT, 2, 4);
 
     // Graph on the right; the number gets the remaining width (room for 3 digits)
     fill_chart = make_chart(widget->obj, LV_CHART_TYPE_BAR);

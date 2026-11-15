@@ -42,9 +42,8 @@ lv_obj_t *zmk_display_status_screen() {
 
     zmk_widget_layer_roller_init(&layer_roller_widget, screen);
 #if IS_ENABLED(CONFIG_PROSPECTOR_WPM_PANEL)
-    // Taller roller pulled up: the active layer sits at CONFIG_PROSPECTOR_ACTIVE_LAYER_Y
-    // with the previous layer peeking in (faded) above. The WPM panel, created
-    // after the roller so it draws on top, covers the next-layer row below.
+    // Taller roller pulled up: the active layer sits at CONFIG_PROSPECTOR_ACTIVE_LAYER_Y.
+    // Only the active row is visible; the WPM panel below draws on top.
     lv_obj_set_size(zmk_widget_layer_roller_obj(&layer_roller_widget), 224, 156);
 #else
     lv_obj_set_size(zmk_widget_layer_roller_obj(&layer_roller_widget), 224, 140);
