@@ -19,4 +19,8 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
         zephyr_library_sources(src/events/split_central_status_changed.c)
         zephyr_library_sources(src/split/bluetooth/central_status_changed_observer.c)
 
+        if(CONFIG_PROSPECTOR_ZAPPY_BIRDS)
+                # Zappy Birds sources are added here by later commits.
+        endif()
+
 endif()

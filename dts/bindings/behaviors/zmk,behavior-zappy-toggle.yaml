@@ -1,0 +1,7 @@
+# Zappy Birds: toggle game mode. param1 = index of the game keymap layer.
+
+description: Toggle the Zappy Birds game
+
+compatible: "zmk,behavior-zappy-toggle"
+
+include: one_param.yaml

@@ -1,0 +1,7 @@
+# Zappy Birds: flap (sends nothing to the host).
+
+description: Zappy Birds flap
+
+compatible: "zmk,behavior-zappy-flap"
+
+include: zero_param.yaml

@@ -28,3 +28,18 @@ config PROSPECTOR_ACTIVE_LAYER_Y
     help
       Read-only layout value for code that places its own objects level with
       the active layer (e.g. extra indicators added from a user config).
+
+config PROSPECTOR_ZAPPY_BIRDS
+    bool "Zappy Birds: hidden tap-to-fly game on the dongle screen"
+    default n
+    depends on SHIELD_PROSPECTOR_ADAPTER
+    select LV_USE_LABEL
+    help
+      Adds the &zappy (toggle game mode) and &zflap (flap) behaviors and the
+      game screen. Pair with a keymap layer of &zflap bindings.
+
+config PROSPECTOR_ROLLER_HIDDEN_TRAILING_LAYERS
+    int "Number of trailing keymap layers to hide from the layer roller"
+    range 0 8
+    default 1 if PROSPECTOR_ZAPPY_BIRDS
+    default 0
