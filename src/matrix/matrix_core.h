@@ -7,8 +7,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MATRIX_COLS 20
-#define MATRIX_ROWS 14
+#include "../display_size.h"
+
+/* 12x20 px cells: 23 columns x 12 rows on the 280x240 screen */
+#define MATRIX_CELL_W 12
+#define MATRIX_CELL_H 20
+#define MATRIX_COLS (DISPLAY_W / MATRIX_CELL_W)
+#define MATRIX_ROWS (DISPLAY_H / MATRIX_CELL_H)
 #define MATRIX_GLYPHS 56 /* half-width katakana U+FF66..U+FF9D */
 #define MATRIX_LEVEL_MAX 15
 

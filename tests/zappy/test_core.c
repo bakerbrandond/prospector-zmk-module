@@ -361,6 +361,12 @@ static void test_hard_gap_wider(void) {
     }
 }
 
+/* The playfield is the landscape screen LVGL sees (280x240). */
+static void test_field_is_screen(void) {
+    assert(ZAPPY_W == DISPLAY_W);
+    assert(ZAPPY_H == DISPLAY_H);
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -390,6 +396,7 @@ int main(void) {
     RUN(test_hard_restart_stays_hard);
     RUN(test_hard_best_separate);
     RUN(test_hard_gap_wider);
+    RUN(test_field_is_screen);
     printf("ok %d tests\n", n);
     return 0;
 }

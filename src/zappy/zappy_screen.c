@@ -150,7 +150,7 @@ lv_obj_t *zappy_screen_create(void) {
     lv_label_set_text_static(label(title_box, &CaskaydiaCove_SemiBold_20, NORD4), "any key: play\nH: hard");
     title_best = label(title_box, &CaskaydiaCove_SemiBold_20, NORD8);
     lv_label_set_text_static(title_best, title_best_buf);
-    lv_obj_align(title_box, LV_ALIGN_TOP_MID, 0, 28);
+    lv_obj_align(title_box, LV_ALIGN_TOP_MID, 0, 20); /* 153 px tall: ends 11 px above the bobbing bird */
 
     over_box = box();
     over_mode = label(over_box, &CaskaydiaCove_SemiBold_20, NORD12);

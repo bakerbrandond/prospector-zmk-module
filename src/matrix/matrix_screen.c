@@ -9,8 +9,8 @@
 #include <fonts.h>
 #include <theme.h>
 
-#define CELL_W (240 / MATRIX_COLS)
-#define CELL_H (280 / MATRIX_ROWS)
+#define CELL_W MATRIX_CELL_W
+#define CELL_H MATRIX_CELL_H
 
 static lv_obj_t *screen, *grid;
 static const struct matrix_state *state;
@@ -77,7 +77,8 @@ lv_obj_t *matrix_screen_create(void) {
     lv_obj_remove_style_all(grid);
     lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(grid, MATRIX_COLS * CELL_W, MATRIX_ROWS * CELL_H);
-    lv_obj_set_pos(grid, 0, 0);
+    /* centre the grid: the width isn't a whole number of cells */
+    lv_obj_set_pos(grid, (DISPLAY_W - MATRIX_COLS * CELL_W) / 2, 0);
     lv_obj_add_event_cb(grid, draw_cb, LV_EVENT_DRAW_MAIN, NULL);
 
     return screen;

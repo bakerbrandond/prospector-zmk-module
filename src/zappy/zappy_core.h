@@ -7,8 +7,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define ZAPPY_W 240
-#define ZAPPY_H 280
+#include "../display_size.h"
+
+#define ZAPPY_W DISPLAY_W
+#define ZAPPY_H DISPLAY_H
 #define ZAPPY_TICK_MS 33
 #define ZAPPY_CRASH_LOCKOUT_MS 600
 #define ZAPPY_NUM_PYLONS 3

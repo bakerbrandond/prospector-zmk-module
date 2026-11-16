@@ -97,6 +97,15 @@ static void test_deterministic(void) {
     assert(memcmp(&a, &b, sizeof(a)) == 0);
 }
 
+/* The rain covers the landscape screen LVGL sees (280x240 after the 270-degree
+ * rotation): every row visible, and less than one cell of width left over. */
+static void test_grid_fits_screen(void) {
+    assert(MATRIX_ROWS * MATRIX_CELL_H == DISPLAY_H);
+    assert(MATRIX_COLS * MATRIX_CELL_W <= DISPLAY_W);
+    assert(DISPLAY_W - MATRIX_COLS * MATRIX_CELL_W < MATRIX_CELL_W);
+    assert(MATRIX_ROWS <= 16); /* dirty is a uint16_t row mask */
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -107,6 +116,7 @@ int main(void) {
     RUN(test_columns_respawn);
     RUN(test_long_run_bounds);
     RUN(test_deterministic);
+    RUN(test_grid_fits_screen);
     printf("ok %d tests\n", n);
     return 0;
 }
