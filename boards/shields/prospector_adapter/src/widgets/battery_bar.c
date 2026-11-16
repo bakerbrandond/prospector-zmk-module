@@ -210,9 +210,10 @@ int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t 
         lv_obj_set_style_bg_opa(nc_bar, 255, 0);
 
         lv_obj_t *nc_num = lv_label_create(info_container);
+        lv_obj_set_style_text_font(nc_num, &CaskaydiaCove_Icons_20, 0);
         lv_obj_set_style_text_color(nc_num, lv_color_hex(THEME_DISCONNECTED), 0);
         lv_obj_align(nc_num, LV_ALIGN_CENTER, 0, 0);
-        lv_label_set_text(nc_num, LV_SYMBOL_CLOSE);
+        lv_label_set_text(nc_num, ICON_CLOSE);
         lv_obj_set_style_opa(nc_num, 255, 0);
     }
 
