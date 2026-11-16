@@ -289,6 +289,28 @@ static void test_other_key_starts_normal(void) {
     assert(zappy_target_letter(&g) == 0);
 }
 
+/* H pressed a moment after another key (a roll) still picks hard mode. */
+static void test_h_just_after_other_key_starts_hard(void) {
+    struct zappy_pool p = qwh_pool();
+    zappy_init(&g, 0, 0, 1, &p);
+    assert(zappy_press(&g, 1000, 1));
+    assert(g.mode == ZAPPY_NORMAL);
+    assert(zappy_press(&g, 1000 + ZAPPY_HARD_GRACE_MS - 1, 19));
+    assert(g.mode == ZAPPY_HARD);
+    assert(g.phase == ZAPPY_PLAYING);
+    assert(g.score == 0);
+    assert(zappy_target_letter(&g) != 0);
+}
+
+/* After the grace period, H is just a flap in a normal run. */
+static void test_h_late_stays_normal(void) {
+    struct zappy_pool p = qwh_pool();
+    zappy_init(&g, 0, 0, 1, &p);
+    assert(zappy_press(&g, 1000, 1));
+    assert(zappy_press(&g, 1000 + ZAPPY_HARD_GRACE_MS, 19));
+    assert(g.mode == ZAPPY_NORMAL);
+}
+
 static void test_hard_needs_two_letters(void) {
     static const uint8_t pos[] = {19};
     static const uint32_t use[] = {USAGE(KEY_H)};
@@ -390,6 +412,8 @@ int main(void) {
     RUN(test_pool_add);
     RUN(test_h_starts_hard);
     RUN(test_other_key_starts_normal);
+    RUN(test_h_just_after_other_key_starts_hard);
+    RUN(test_h_late_stays_normal);
     RUN(test_hard_needs_two_letters);
     RUN(test_wrong_key_ignored);
     RUN(test_right_key_flaps_and_moves_target);

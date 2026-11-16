@@ -69,11 +69,18 @@ lv_obj_t *matrix_screen_create(void) {
     }
 
     screen = lv_obj_create(NULL);
+    if (!screen)
+        return NULL;
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(screen, lv_color_hex(THEME_BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
 
     grid = lv_obj_create(screen);
+    if (!grid) {
+        lv_obj_del(screen);
+        screen = NULL;
+        return NULL;
+    }
     lv_obj_remove_style_all(grid);
     lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(grid, MATRIX_COLS * CELL_W, MATRIX_ROWS * CELL_H);

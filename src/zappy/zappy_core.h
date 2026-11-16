@@ -30,6 +30,8 @@ enum zappy_mode { ZAPPY_NORMAL, ZAPPY_HARD };
 #define ZAPPY_MAX_POOL 42
 #define ZAPPY_NO_POS 0xFF
 #define ZAPPY_HARD_GAP_H (ZAPPY_GAP_H + 24)
+/* H this soon after the press that started a normal run switches it to hard */
+#define ZAPPY_HARD_GRACE_MS 150
 
 /* Letter keys usable as hard-mode targets: key position + its letter. */
 struct zappy_pool {
@@ -60,6 +62,7 @@ struct zappy_game {
     uint16_t best_hard;
     int16_t gap_h;          /* gap height for the current mode */
     struct zappy_pool pool;
+    uint32_t run_start_ms; /* now_ms of the press that started the run */
     uint8_t target;         /* hard mode: index into pool */
 };
 

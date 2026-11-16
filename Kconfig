@@ -58,5 +58,6 @@ config PROSPECTOR_MATRIX_TIMEOUT_S
     default 120
     depends on PROSPECTOR_MATRIX_SCREENSAVER
     help
-      Must be at least CONFIG_ZMK_IDLE_TIMEOUT (30 s by default): the
-      countdown starts when ZMK reports idle.
+      In seconds. Must be at least CONFIG_ZMK_IDLE_TIMEOUT, which is in
+      milliseconds (30000, i.e. 30 s, by default): the countdown starts
+      when ZMK reports idle.

@@ -101,14 +101,23 @@ void zappy_init(struct zappy_game *g, uint16_t best, uint16_t best_hard, uint32_
     g->bird_y_fp = start_y_fp();
 }
 
+static bool is_hard_key(const struct zappy_game *g, uint8_t position) {
+    return position == g->pool.h_pos && g->pool.h_pos != ZAPPY_NO_POS && g->pool.n >= 2;
+}
+
 bool zappy_press(struct zappy_game *g, uint32_t now_ms, uint8_t position) {
     switch (g->phase) {
-    case ZAPPY_TITLE: {
-        bool hard = position == g->pool.h_pos && g->pool.h_pos != ZAPPY_NO_POS && g->pool.n >= 2;
-        start_run(g, hard ? ZAPPY_HARD : ZAPPY_NORMAL);
+    case ZAPPY_TITLE:
+        start_run(g, is_hard_key(g, position) ? ZAPPY_HARD : ZAPPY_NORMAL);
+        g->run_start_ms = now_ms;
         return true;
-    }
     case ZAPPY_PLAYING:
+        /* a roll onto H right after starting: the player meant hard mode */
+        if (g->mode == ZAPPY_NORMAL && is_hard_key(g, position) &&
+            (uint32_t)(now_ms - g->run_start_ms) < ZAPPY_HARD_GRACE_MS) {
+            start_run(g, ZAPPY_HARD);
+            return true;
+        }
         if (g->mode == ZAPPY_HARD) {
             if (position != g->pool.pos[g->target])
                 return false; /* wrong key: no flap */

@@ -20,7 +20,9 @@
 #define BIRD_DRAW 20 /* body drawn slightly larger than the collision box */
 #define CAP_H 6
 #define CAP_OVERHANG 3
-#define TITLE_BIRD_DROP 80
+/* Title text sits right of the bird, which bobs at its real start height so a
+ * run starts without the bird jumping. Widest line "any key: play" is 153 px. */
+#define TITLE_PANEL_X 96
 
 static lv_obj_t *screen;
 static lv_obj_t *bird, *bolt;
@@ -150,7 +152,8 @@ lv_obj_t *zappy_screen_create(void) {
     lv_label_set_text_static(label(title_box, &CaskaydiaCove_SemiBold_20, NORD4), "any key: play\nH: hard");
     title_best = label(title_box, &CaskaydiaCove_SemiBold_20, NORD8);
     lv_label_set_text_static(title_best, title_best_buf);
-    lv_obj_align(title_box, LV_ALIGN_TOP_MID, 0, 20); /* 153 px tall: ends 11 px above the bobbing bird */
+    lv_obj_set_width(title_box, ZAPPY_W - TITLE_PANEL_X);
+    lv_obj_align(title_box, LV_ALIGN_RIGHT_MID, 0, 0);
 
     over_box = box();
     over_mode = label(over_box, &CaskaydiaCove_SemiBold_20, NORD12);
@@ -199,9 +202,7 @@ void zappy_screen_render(const struct zappy_game *g) {
 
     /* bird: draw box centered on the collision box */
     int16_t off = (BIRD_DRAW - ZAPPY_BIRD_SIZE) / 2;
-    /* on the title the bird bobs below the text instead of behind it */
-    int16_t title_drop = g->phase == ZAPPY_TITLE ? TITLE_BIRD_DROP : 0;
-    lv_obj_set_pos(bird, ZAPPY_BIRD_X - off, zappy_bird_y(g) - off + title_drop);
+    lv_obj_set_pos(bird, ZAPPY_BIRD_X - off, zappy_bird_y(g) - off);
     int pose = g->flap_frames ? 1 : 0;
     if (pose != last_flap_pose) {
         last_flap_pose = pose;
@@ -233,7 +234,7 @@ void zappy_screen_render(const struct zappy_game *g) {
     set_hidden(title_box, !title);
     if (title) {
         char t[24];
-        snprintf(t, sizeof(t), "BEST %u  HARD %u", g->best, g->best_hard);
+        snprintf(t, sizeof(t), "BEST %u\nHARD %u", g->best, g->best_hard);
         set_text_str(title_best, title_best_buf, sizeof(title_best_buf), t);
     }
 

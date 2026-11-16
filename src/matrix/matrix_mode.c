@@ -88,6 +88,10 @@ static void show_rain(void) {
         return;
     }
     lv_obj_t *scr = matrix_screen_create();
+    if (!scr) { /* out of LVGL memory: skip this round, the next idle retries */
+        atomic_set(&want_rain, 0);
+        return;
+    }
     lv_obj_t *cur = lv_scr_act();
     if (cur != scr)
         saved_screen = cur;
@@ -98,6 +102,14 @@ static void show_rain(void) {
     last_ms = k_uptime_get_32();
     acc_ms = 0;
     timer = lv_timer_create(tick_cb, POLL_MS, NULL);
+    if (!timer) {
+        /* no timer means "not shown" to sync_work, so nothing would ever
+         * take the rain down: put the old screen back now */
+        LOG_WRN("matrix: no memory for the rain timer");
+        atomic_set(&want_rain, 0);
+        if (saved_screen)
+            lv_scr_load(saved_screen);
+    }
 }
 
 static void hide_rain(void) {
