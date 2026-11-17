@@ -15,6 +15,22 @@ config PROSPECTOR_FIXED_BRIGHTNESS
     default 50
     range 1 100
     depends on !PROSPECTOR_USE_AMBIENT_LIGHT_SENSOR
+config PROSPECTOR_PERIPHERAL_CHARGING_SERVICE
+    bool "Tell the Prospector dongle when this keyboard half is on USB power"
+    depends on ZMK_SPLIT && !ZMK_SPLIT_ROLE_CENTRAL && ZMK_BLE && USB_DEVICE_STACK
+    help
+      Set on the keyboard halves. Adds a small GATT service the dongle reads
+      to show a charging bolt instead of the battery percentage, which reads
+      about 100% while charging.
+
+config PROSPECTOR_CHARGING_INDICATOR
+    bool "Show a charging bolt for keyboard halves on USB power"
+    default y
+    depends on SHIELD_PROSPECTOR_ADAPTER && ZMK_SPLIT_ROLE_CENTRAL && ZMK_SPLIT_BLE
+    help
+      Needs PROSPECTOR_PERIPHERAL_CHARGING_SERVICE on the halves; halves
+      without it just show their percentage.
+
 config PROSPECTOR_WPM_PANEL
     bool "Show a words-per-minute panel (number + history graph)"
     default y

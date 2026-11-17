@@ -2,6 +2,11 @@ zephyr_include_directories(include)
 zephyr_include_directories(${APPLICATION_SOURCE_DIR}/include)
 zephyr_library()
 
+# Keyboard halves: report USB power to the dongle (see include/prospector/charging_service.h)
+if(CONFIG_PROSPECTOR_PERIPHERAL_CHARGING_SERVICE)
+        zephyr_library_sources(src/split/bluetooth/charging_peripheral.c)
+endif()
+
 if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
 
         add_subdirectory(${ZEPHYR_CURRENT_MODULE_DIR}/drivers/display)
@@ -9,6 +14,11 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
 
         zephyr_library_sources(src/events/split_central_status_changed.c)
         zephyr_library_sources(src/split/bluetooth/central_status_changed_observer.c)
+
+        if(CONFIG_PROSPECTOR_CHARGING_INDICATOR)
+                zephyr_library_sources(src/events/peripheral_charging_changed.c)
+                zephyr_library_sources(src/split/bluetooth/charging_central.c)
+        endif()
 
         # Built whenever the keymap has &zappy/&zflap nodes, so with the game
         # off they are inert no-ops instead of falling through to lower layers.

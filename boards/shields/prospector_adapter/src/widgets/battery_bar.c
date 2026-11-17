@@ -7,6 +7,9 @@
 #include <zmk/ble.h>
 #include <zmk/events/battery_state_changed.h>
 #include <zmk/events/split_central_status_changed.h>
+#if IS_ENABLED(CONFIG_PROSPECTOR_CHARGING_INDICATOR)
+#include <zmk/events/peripheral_charging_changed.h>
+#endif
 #include <zmk/event_manager.h>
 #include <zmk/split/central.h>
 
@@ -16,7 +19,6 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-#define LOW_BATTERY_PERCENT 20
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -35,6 +37,7 @@ struct peripheral_state {
     bool connected;
     bool has_level;
     uint8_t level;
+    bool charging; // on USB power: show a bolt instead of the (inflated) percentage
 };
 
 // What is currently drawn, so redraws only animate real changes
@@ -42,25 +45,28 @@ struct drawn_state {
     bool valid;
     bool connected;
     int level;
+    bool charging;
 };
 
 K_MUTEX_DEFINE(state_mutex);
 static struct peripheral_state peripherals[ZMK_SPLIT_BLE_PERIPHERAL_COUNT];
 static struct drawn_state drawn[ZMK_SPLIT_BLE_PERIPHERAL_COUNT];
 
-static void draw_level(lv_obj_t *info_container, uint8_t level) {
+static void draw_level(lv_obj_t *info_container, uint8_t level, bool charging) {
     lv_obj_t *bar = lv_obj_get_child(info_container, 0);
     lv_obj_t *num = lv_obj_get_child(info_container, 1);
-    bool low = level < LOW_BATTERY_PERCENT;
 
     lv_bar_set_value(bar, level, LV_ANIM_ON);
-    lv_label_set_text_fmt(num, "%d", level);
+    if (charging) {
+        lv_label_set_text(num, ICON_CHARGING);
+    } else {
+        lv_label_set_text_fmt(num, "%d", level);
+    }
+    lv_obj_set_style_text_color(
+        num, lv_color_hex(charging ? THEME_BATTERY_CHARGING : THEME_BATTERY_TEXT), 0);
 
-    lv_obj_set_style_bg_color(bar, lv_color_hex(low ? THEME_BATTERY_LOW : THEME_BATTERY_FILL),
-                              LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(bar, lv_color_hex(low ? THEME_BATTERY_LOW_TRACK : THEME_BATTERY_TRACK),
-                              LV_PART_MAIN);
-    lv_obj_set_style_text_color(num, lv_color_hex(low ? THEME_BATTERY_LOW : THEME_BATTERY_TEXT), 0);
+    // Bar coloured by charge (see theme.h); the number stays snow
+    lv_obj_set_style_bg_color(bar, lv_color_hex(theme_battery_color(level)), LV_PART_INDICATOR);
 }
 
 static void draw_connected(lv_obj_t *info_container, bool connected) {
@@ -97,9 +103,12 @@ static void redraw_work_cb(struct k_work *work) {
                 continue;
             }
 
-            if (snapshot[i].has_level && (!drawn[i].valid || drawn[i].level != snapshot[i].level)) {
-                draw_level(info_container, snapshot[i].level);
+            if (snapshot[i].has_level &&
+                (!drawn[i].valid || drawn[i].level != snapshot[i].level ||
+                 drawn[i].charging != snapshot[i].charging)) {
+                draw_level(info_container, snapshot[i].level, snapshot[i].charging);
                 drawn[i].level = snapshot[i].level;
+                drawn[i].charging = snapshot[i].charging;
             }
 
             if (!drawn[i].valid || drawn[i].connected != snapshot[i].connected) {
@@ -136,6 +145,13 @@ static int battery_bar_event_listener(const zmk_event_t *eh) {
         LOG_DBG("Connection event: slot=%d, connected=%d", conn_ev->slot, conn_ev->connected);
         peripherals[conn_ev->slot].connected = conn_ev->connected;
     }
+#if IS_ENABLED(CONFIG_PROSPECTOR_CHARGING_INDICATOR)
+    const struct zmk_peripheral_charging_changed *chg_ev = as_zmk_peripheral_charging_changed(eh);
+    if (chg_ev != NULL && chg_ev->source < ZMK_SPLIT_BLE_PERIPHERAL_COUNT) {
+        LOG_DBG("Charging event: source=%d, charging=%d", chg_ev->source, chg_ev->charging);
+        peripherals[chg_ev->source].charging = chg_ev->charging;
+    }
+#endif
     k_mutex_unlock(&state_mutex);
 
     schedule_redraw();
@@ -145,6 +161,9 @@ static int battery_bar_event_listener(const zmk_event_t *eh) {
 ZMK_LISTENER(widget_battery_bar, battery_bar_event_listener);
 ZMK_SUBSCRIPTION(widget_battery_bar, zmk_peripheral_battery_state_changed);
 ZMK_SUBSCRIPTION(widget_battery_bar, zmk_split_central_status_changed);
+#if IS_ENABLED(CONFIG_PROSPECTOR_CHARGING_INDICATOR)
+ZMK_SUBSCRIPTION(widget_battery_bar, zmk_peripheral_charging_changed);
+#endif
 
 // Fill in battery levels ZMK already knows about but we have no event for
 static void seed_battery_levels(void) {
@@ -162,7 +181,13 @@ static void seed_battery_levels(void) {
 #endif
 }
 
+// The battery number's font, falling back to the icon font for the charging bolt
+static lv_font_t battery_font;
+
 int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t *parent) {
+    battery_font = THEME_FONT_BATTERY;
+    battery_font.fallback = &CaskaydiaCove_Icons_20;
+
     widget->obj = lv_obj_create(parent);
     lv_obj_set_width(widget->obj, lv_pct(100));
     lv_obj_set_flex_flow(widget->obj, LV_FLEX_FLOW_ROW);
@@ -187,7 +212,7 @@ int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t 
         lv_obj_set_style_bg_color(bar, lv_color_hex(THEME_BATTERY_TRACK), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(bar, 255, LV_PART_MAIN);
         lv_obj_set_style_radius(bar, 1, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(bar, lv_color_hex(THEME_BATTERY_FILL), LV_PART_INDICATOR);
+        lv_obj_set_style_bg_color(bar, lv_color_hex(theme_battery_color(0)), LV_PART_INDICATOR);
         lv_obj_set_style_bg_opa(bar, 255, LV_PART_INDICATOR);
         lv_obj_set_style_radius(bar, 1, LV_PART_INDICATOR);
         lv_obj_set_style_anim_time(bar, 250, 0);
@@ -196,7 +221,7 @@ int zmk_widget_battery_bar_init(struct zmk_widget_battery_bar *widget, lv_obj_t 
         lv_obj_set_style_opa(bar, 0, 0); // hidden until connected
 
         lv_obj_t *num = lv_label_create(info_container);
-        lv_obj_set_style_text_font(num, &THEME_FONT_BATTERY, 0);
+        lv_obj_set_style_text_font(num, &battery_font, 0);
         lv_obj_set_style_text_color(num, lv_color_hex(THEME_BATTERY_TEXT), 0);
         lv_obj_align(num, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_text(num, "N/A");

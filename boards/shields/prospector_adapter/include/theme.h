@@ -5,6 +5,8 @@
  * semantic colors the status screen uses. Change the mapping here to retheme.
  */
 
+#include <stdint.h>
+
 // Polar Night
 #define NORD0 0x2E3440
 #define NORD1 0x3B4252
@@ -31,12 +33,22 @@
 #define THEME_LAYER_ACTIVE NORD8
 #define THEME_LAYER_INACTIVE NORD3
 
-#define THEME_BATTERY_FILL NORD9
+// Battery bar: green from 70%, yellow from 30%, red below; the number stays snow
+#define THEME_BATTERY_HIGH NORD14
+#define THEME_BATTERY_MID NORD13
+#define THEME_BATTERY_LOW NORD11
+#define THEME_BATTERY_HIGH_PERCENT 70
+#define THEME_BATTERY_MID_PERCENT 30
 #define THEME_BATTERY_TRACK NORD1
 #define THEME_BATTERY_TEXT NORD4
-#define THEME_BATTERY_LOW NORD12
-#define THEME_BATTERY_LOW_TRACK NORD1
+#define THEME_BATTERY_CHARGING NORD13 // the bolt shown while a half is on USB power
 #define THEME_DISCONNECTED NORD3
+
+static inline uint32_t theme_battery_color(int level) {
+    return level >= THEME_BATTERY_HIGH_PERCENT  ? THEME_BATTERY_HIGH
+           : level >= THEME_BATTERY_MID_PERCENT ? THEME_BATTERY_MID
+                                                : THEME_BATTERY_LOW;
+}
 
 #define THEME_INDICATOR_ON NORD7
 #define THEME_INDICATOR_OFF NORD1
@@ -53,7 +65,7 @@
 #define THEME_WPM_NUMBER NORD6
 #define THEME_WPM_IDLE NORD3
 #define THEME_WPM_LABEL NORD4
-#define THEME_WPM_LINE NORD8
+#define THEME_WPM_LINE NORD15
 #define THEME_WPM_FILL NORD1
 #define THEME_FONT_WPM CaskaydiaCove_SemiBold_32
 #define THEME_FONT_WPM_LABEL CaskaydiaCove_SemiBold_20

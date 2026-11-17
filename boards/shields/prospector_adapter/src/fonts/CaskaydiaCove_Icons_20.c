@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 20 px
  * Bpp: 4
- * Opts: --font CaskaydiaCoveNerdFontPropo-Regular.ttf -r 0xF0156 --size 20 --bpp 4 --format lvgl --no-compress --lv-include lvgl.h -o CaskaydiaCove_Icons_20.c
+ * Opts: --font CaskaydiaCoveNerdFontPropo-Regular.ttf -r 0xF0156,0xF140B --size 20 --bpp 4 --format lvgl --no-compress --lv-include lvgl.h -o CaskaydiaCove_Icons_20.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -31,7 +31,22 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0x0, 0x0, 0x0, 0xb, 0xf9, 0xdf, 0x60, 0x0,
     0x0, 0xbf, 0x80, 0x1d, 0xf6, 0x0, 0xb, 0xf8,
     0x0, 0x1, 0xdf, 0x60, 0xbf, 0x80, 0x0, 0x0,
-    0x1d, 0xf5, 0x48, 0x0, 0x0, 0x0, 0x1, 0xa1
+    0x1d, 0xf5, 0x48, 0x0, 0x0, 0x0, 0x1, 0xa1,
+
+    /* U+F140B "󱐋" */
+    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x4,
+    0x0, 0x0, 0x0, 0x0, 0xc, 0x0, 0x0, 0x0,
+    0x0, 0x7d, 0x0, 0x0, 0x0, 0x0, 0xed, 0x0,
+    0x0, 0x0, 0x7, 0xfd, 0x0, 0x0, 0x0, 0xe,
+    0xfd, 0x0, 0x0, 0x0, 0x7f, 0xfe, 0x77, 0x76,
+    0x0, 0xef, 0xff, 0xff, 0xf8, 0x7, 0xff, 0xff,
+    0xff, 0xf1, 0xe, 0xff, 0xff, 0xff, 0x80, 0x7f,
+    0xff, 0xff, 0xff, 0x10, 0x79, 0x99, 0xef, 0xf8,
+    0x0, 0x0, 0x0, 0xdf, 0xf1, 0x0, 0x0, 0x0,
+    0xdf, 0x80, 0x0, 0x0, 0x0, 0xdf, 0x10, 0x0,
+    0x0, 0x0, 0xd8, 0x0, 0x0, 0x0, 0x0, 0xc1,
+    0x0, 0x0, 0x0, 0x0, 0x50, 0x0, 0x0, 0x0,
+    0x0, 0x0, 0x0, 0x0
 };
 
 
@@ -41,21 +56,24 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
 
 static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 0, .adv_w = 0, .box_w = 0, .box_h = 0, .ofs_x = 0, .ofs_y = 0} /* id = 0 reserved */,
-    {.bitmap_index = 0, .adv_w = 186, .box_w = 12, .box_h = 12, .ofs_x = 0, .ofs_y = 1}
+    {.bitmap_index = 0, .adv_w = 186, .box_w = 12, .box_h = 12, .ofs_x = 0, .ofs_y = 1},
+    {.bitmap_index = 72, .adv_w = 160, .box_w = 10, .box_h = 20, .ofs_x = 0, .ofs_y = -3}
 };
 
 /*---------------------
  *  CHARACTER MAPPING
  *--------------------*/
 
-
+static const uint16_t unicode_list_0[] = {
+    0x0, 0x12b5
+};
 
 /*Collect the unicode lists and glyph_id offsets*/
 static const lv_font_fmt_txt_cmap_t cmaps[] =
 {
     {
-        .range_start = 983382, .range_length = 1, .glyph_id_start = 1,
-        .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
+        .range_start = 983382, .range_length = 4790, .glyph_id_start = 1,
+        .unicode_list = unicode_list_0, .glyph_id_ofs_list = NULL, .list_length = 2, .type = LV_FONT_FMT_TXT_CMAP_SPARSE_TINY
     }
 };
 
@@ -99,8 +117,8 @@ lv_font_t CaskaydiaCove_Icons_20 = {
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
-    .line_height = 12,          /*The maximum line height required by the font*/
-    .base_line = -1,             /*Baseline measured from the bottom of the line*/
+    .line_height = 20,          /*The maximum line height required by the font*/
+    .base_line = 3,             /*Baseline measured from the bottom of the line*/
 #if !(LVGL_VERSION_MAJOR == 6 && LVGL_VERSION_MINOR == 0)
     .subpx = LV_FONT_SUBPX_NONE,
 #endif
