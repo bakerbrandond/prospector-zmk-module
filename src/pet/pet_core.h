@@ -32,3 +32,23 @@ bool pet_add_presses(struct pet_state *p, uint32_t n);
 /* elapsed_ms is a difference of unsigned uptimes (now - then), so it wraps safely */
 void pet_elapse(struct pet_state *p, uint32_t elapsed_ms);
 void pet_feed(struct pet_state *p);
+
+/* Mood, idle and saving */
+#define PET_SLEEP_IDLE_MS 120000u /* asleep after 2 min without a key press */
+#define PET_SAVE_EVERY_MS 900000u /* save at most every 15 min */
+#define PET_BOOST_MS 300000u      /* a won mini-game cheers it up this long */
+#define PET_EXCITED_WPM 60
+#define PET_HAPPY_WPM 25
+
+/* Hearts shown = mood level (0..4) */
+enum pet_mood { PET_ASLEEP, PET_SLEEPY, PET_CALM, PET_HAPPY, PET_EXCITED };
+
+enum pet_mood pet_mood_of(int wpm, uint32_t idle_ms, bool boost);
+bool pet_save_due(uint32_t since_save_ms, bool dirty);
+
+/* Saved form: version, keys, growth_half, fullness_ms (little-endian), shown_stage */
+#define PET_BLOB_LEN 14
+#define PET_BLOB_VERSION 1
+void pet_pack(const struct pet_state *p, uint8_t out[PET_BLOB_LEN]);
+/* false (and *out untouched) if the length or version is wrong */
+bool pet_unpack(const uint8_t *buf, size_t len, struct pet_state *out);

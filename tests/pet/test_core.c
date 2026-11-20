@@ -88,6 +88,58 @@ static void test_elapse_wrap_delta(void) {
     assert(p.fullness_ms == PET_FULL_MS - 2000);
 }
 
+static void test_mood_bands(void) {
+    assert(pet_mood_of(80, 0, false) == PET_EXCITED);
+    assert(pet_mood_of(30, 0, false) == PET_HAPPY);
+    assert(pet_mood_of(5, 0, false) == PET_CALM);
+    assert(pet_mood_of(0, 1000, false) == PET_SLEEPY);
+    assert(pet_mood_of(0, PET_SLEEP_IDLE_MS, false) == PET_ASLEEP);
+}
+
+static void test_boost_raises_one(void) {
+    assert(pet_mood_of(5, 0, true) == PET_HAPPY);
+    assert(pet_mood_of(80, 0, true) == PET_EXCITED);
+    assert(pet_mood_of(0, PET_SLEEP_IDLE_MS, true) == PET_ASLEEP);
+}
+
+static void test_save_due(void) {
+    assert(!pet_save_due(PET_SAVE_EVERY_MS, false));
+    assert(!pet_save_due(PET_SAVE_EVERY_MS - 1, true));
+    assert(pet_save_due(PET_SAVE_EVERY_MS, true));
+}
+
+static void test_pack_roundtrip(void) {
+    struct pet_state a = {123456, 2 * 10001, 4321, PET_CHILD}, b;
+    uint8_t buf[PET_BLOB_LEN];
+    pet_pack(&a, buf);
+    assert(buf[0] == PET_BLOB_VERSION);
+    assert(pet_unpack(buf, sizeof(buf), &b));
+    assert(b.keys == a.keys && b.growth_half == a.growth_half);
+    assert(b.fullness_ms == a.fullness_ms && b.shown_stage == a.shown_stage);
+}
+
+static void test_unpack_rejects(void) {
+    struct pet_state a = {1, 2, 3, PET_BABY}, out;
+    uint8_t buf[PET_BLOB_LEN], zeros[PET_BLOB_LEN] = {0};
+    pet_pack(&a, buf);
+    memset(&out, 0x5A, sizeof(out));
+    struct pet_state sentinel = out;
+    assert(!pet_unpack(buf, PET_BLOB_LEN - 1, &out));
+    buf[0] = 2;
+    assert(!pet_unpack(buf, sizeof(buf), &out));
+    assert(!pet_unpack(zeros, sizeof(zeros), &out));
+    assert(memcmp(&out, &sentinel, sizeof(out)) == 0);
+}
+
+static void test_unpack_clamps(void) {
+    struct pet_state a = {1, 2, 0xFFFFFFFFu, 9}, out;
+    uint8_t buf[PET_BLOB_LEN];
+    pet_pack(&a, buf);
+    assert(pet_unpack(buf, sizeof(buf), &out));
+    assert(out.fullness_ms == PET_FULL_MS);
+    assert(out.shown_stage == PET_ADULT);
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -101,6 +153,12 @@ int main(void) {
     RUN(test_drain_24h);
     RUN(test_feed_refills);
     RUN(test_elapse_wrap_delta);
+    RUN(test_mood_bands);
+    RUN(test_boost_raises_one);
+    RUN(test_save_due);
+    RUN(test_pack_roundtrip);
+    RUN(test_unpack_rejects);
+    RUN(test_unpack_clamps);
     printf("ok %d tests\n", n);
     return 0;
 }
