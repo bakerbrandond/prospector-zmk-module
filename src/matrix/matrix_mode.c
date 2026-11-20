@@ -47,6 +47,9 @@ BUILD_ASSERT(CONFIG_PROSPECTOR_MATRIX_TIMEOUT_S * 1000 >= CONFIG_ZMK_IDLE_TIMEOU
 
 static atomic_t want_rain;
 
+/* Overridden by the typing pet when it's built: ends its mini-game. */
+__weak void pet_mode_end_game(void) {}
+
 /* display work queue only */
 static struct matrix_state model;
 static uint16_t pending_dirty[MATRIX_COLS];
@@ -99,6 +102,7 @@ static void show_rain(void) {
     matrix_init(&model, k_cycle_get_32() | 1);
     matrix_screen_render(&model, pending_dirty); /* bind the model; screen load redraws all */
     lv_scr_load(scr);
+    pet_mode_end_game();
     last_ms = k_uptime_get_32();
     acc_ms = 0;
     timer = lv_timer_create(tick_cb, POLL_MS, NULL);

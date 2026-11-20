@@ -1,0 +1,8 @@
+# Typing pet: 0 swap the WPM panel and the pet, 1 feed, 2 mini-game.
+# param2 = index of the mini-game capture keymap layer (used by 2).
+
+description: Typing pet command
+
+compatible: "zmk,behavior-pet"
+
+include: two_param.yaml

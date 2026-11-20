@@ -6,6 +6,9 @@
 #include "widgets/layer_roller.h"
 #include "widgets/battery_bar.h"
 #include "widgets/wpm_panel.h"
+#if IS_ENABLED(CONFIG_PROSPECTOR_TYPING_PET)
+#include "pet_panel.h"
+#endif
 
 #include <fonts.h>
 #include <theme.h>
@@ -48,6 +51,13 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_wpm_panel_init(&wpm_panel_widget, screen);
     lv_obj_set_size(zmk_widget_wpm_panel_obj(&wpm_panel_widget), 204, 64);
     lv_obj_align(zmk_widget_wpm_panel_obj(&wpm_panel_widget), LV_ALIGN_TOP_LEFT, 16, 124);
+#endif
+
+#if IS_ENABLED(CONFIG_PROSPECTOR_TYPING_PET)
+    // The typing pet takes the WPM panel's place when swapped in (Function + ,)
+    lv_obj_t *pet = pet_panel_create(screen);
+    lv_obj_align(pet, LV_ALIGN_TOP_LEFT, 16, 124);
+    pet_mode_attach(zmk_widget_wpm_panel_obj(&wpm_panel_widget), pet);
 #endif
 
 

@@ -219,6 +219,15 @@ static void test_hide_varies(void) {
     assert(lefts > 8 && lefts < 56);
 }
 
+static void test_progress_pct(void) {
+    assert(pet_progress_pct(0) == 0);
+    assert(pet_progress_pct(2 * 250) == 50);
+    assert(pet_progress_pct(2 * 500) == 0);       /* Baby just reached */
+    assert(pet_progress_pct(2 * 5250) == 50);     /* halfway 500 -> 10000 */
+    assert(pet_progress_pct(2 * 1000000) == 100); /* Adult */
+    assert(pet_progress_pct(UINT32_MAX) == 100);
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -247,6 +256,7 @@ int main(void) {
     RUN(test_hard_cap);
     RUN(test_guess_when_off_ignored);
     RUN(test_hide_varies);
+    RUN(test_progress_pct);
     printf("ok %d tests\n", n);
     return 0;
 }

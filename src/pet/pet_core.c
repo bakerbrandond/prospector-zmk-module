@@ -25,6 +25,14 @@ uint32_t pet_next_threshold(uint32_t growth_half) {
     return s == PET_ADULT ? 0 : stage_at[s + 1];
 }
 
+uint8_t pet_progress_pct(uint32_t growth_half) {
+    enum pet_stage s = pet_stage_of(growth_half);
+    if (s == PET_ADULT)
+        return 100;
+    uint32_t from = stage_at[s], to = stage_at[s + 1];
+    return (uint8_t)((uint64_t)(growth_half / 2 - from) * 100 / (to - from));
+}
+
 bool pet_hungry(const struct pet_state *p) { return p->fullness_ms == 0; }
 
 static uint32_t sat_add(uint32_t a, uint32_t b) { return a > UINT32_MAX - b ? UINT32_MAX : a + b; }

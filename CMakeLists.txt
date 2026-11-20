@@ -26,6 +26,12 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
                 zephyr_library_sources(src/behaviors/behavior_zappy.c)
         endif()
 
+        # Built whenever the keymap has &pet/&petkey nodes, so with the pet off
+        # they are inert no-ops instead of falling through to lower layers.
+        if(CONFIG_DT_HAS_ZMK_BEHAVIOR_PET_ENABLED OR CONFIG_DT_HAS_ZMK_BEHAVIOR_PET_KEY_ENABLED)
+                zephyr_library_sources(src/behaviors/behavior_pet.c)
+        endif()
+
         if(CONFIG_DT_HAS_ZMK_BEHAVIOR_PROSPECTOR_BACKLIGHT_ENABLED)
                 zephyr_library_sources(src/behaviors/behavior_prospector_bl.c)
         endif()
@@ -43,6 +49,15 @@ if(CONFIG_SHIELD_PROSPECTOR_ADAPTER)
                 zephyr_library_sources(src/zappy/zappy_screen.c)
                 zephyr_library_sources(src/zappy/zappy_mode.c)
                 zephyr_library_sources(src/zappy/zappy_store.c)
+        endif()
+
+        if(CONFIG_PROSPECTOR_TYPING_PET)
+                zephyr_library_include_directories(boards/shields/prospector_adapter/include)
+                zephyr_library_sources(src/pet/pet_core.c)
+                zephyr_library_sources(src/pet/pet_sprites.c)
+                zephyr_library_sources(src/pet/pet_panel.c)
+                zephyr_library_sources(src/pet/pet_mode.c)
+                zephyr_library_sources(src/pet/pet_store.c)
         endif()
 
 endif()

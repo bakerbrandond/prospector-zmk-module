@@ -56,6 +56,19 @@ config PROSPECTOR_ZAPPY_BIRDS
       Adds the &zappy (toggle game mode) and &zflap (flap) behaviors and the
       game screen. Pair with a keymap layer of &zflap bindings.
 
+config PROSPECTOR_TYPING_PET
+    bool "Typing pet: a pet that grows with your typing, in place of the WPM panel"
+    default n
+    depends on SHIELD_PROSPECTOR_ADAPTER && PROSPECTOR_WPM_PANEL && ZMK_WPM
+    select LV_USE_LABEL
+    select LV_USE_BAR
+    select LV_USE_IMG
+    select LV_USE_CANVAS
+    help
+      Adds the &pet (swap the WPM panel and the pet, feed, mini-game) and
+      &petkey (mini-game guess) behaviors. Pair &petkey with a keymap layer
+      named "Pet" for the mini-game.
+
 config PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME
     string "Display names of keymap layers to leave out of the layer roller"
     default "Zappy,Pet" if PROSPECTOR_ZAPPY_BIRDS && PROSPECTOR_TYPING_PET

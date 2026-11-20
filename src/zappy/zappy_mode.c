@@ -49,6 +49,9 @@ static uint32_t last_tick_ms, step_acc;
 
 /* Overridden by the matrix screensaver when it's built. */
 __weak void matrix_mode_hide_now(void) {}
+/* Overridden by the typing pet when it's built: ends its mini-game, whose
+ * capture layer sits above the Zappy layer. */
+__weak void pet_mode_end_game(void) {}
 
 __weak void zappy_store_save(enum zappy_mode m, uint16_t b) {
     ARG_UNUSED(m);
@@ -130,6 +133,7 @@ static void tick_cb(lv_timer_t *t) {
 
 static void show_game(void) {
     matrix_mode_hide_now(); /* never save the screensaver as the status screen */
+    pet_mode_end_game();
     lv_obj_t *cur = lv_scr_act();
     if (!zmk_display_is_initialized() || !cur) {
         LOG_WRN("zappy: display not ready, leaving game mode");

@@ -1,0 +1,7 @@
+# Typing pet: mini-game guess, left or right half (sends nothing to the host).
+
+description: Typing pet mini-game key
+
+compatible: "zmk,behavior-pet-key"
+
+include: zero_param.yaml

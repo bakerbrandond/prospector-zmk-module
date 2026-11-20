@@ -26,6 +26,8 @@ void pet_init(struct pet_state *p); /* fresh egg, full */
 enum pet_stage pet_stage_of(uint32_t growth_half);
 /* growth value (whole points) of the next stage, 0 if Adult */
 uint32_t pet_next_threshold(uint32_t growth_half);
+/* 0..100 from the current stage's start to the next one; 100 at Adult */
+uint8_t pet_progress_pct(uint32_t growth_half);
 bool pet_hungry(const struct pet_state *p);
 /* Returns true if the stage went up. */
 bool pet_add_presses(struct pet_state *p, uint32_t n);
