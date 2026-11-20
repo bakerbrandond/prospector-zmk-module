@@ -3,3 +3,5 @@ tests/matrix/test_core
 tests/backlight/test_levels
 tests/roller/test_roller
 tests/battery/test_colors
+tests/pet/test_core
+tests/pet/test_sprites
