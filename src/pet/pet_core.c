@@ -87,3 +87,86 @@ bool pet_unpack(const uint8_t *buf, size_t len, struct pet_state *out) {
     out->shown_stage = buf[13] > PET_ADULT ? PET_ADULT : buf[13];
     return true;
 }
+
+enum pet_side pet_side_of_position(uint8_t pos) {
+    if (pos >= 36)
+        return pos <= 38 ? PET_LEFT : PET_RIGHT;
+    return pos % 12 < 6 ? PET_LEFT : PET_RIGHT;
+}
+
+static uint32_t xorshift(uint32_t *s) {
+    uint32_t x = *s;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    return *s = x;
+}
+
+static void new_round(struct pet_game *g, uint32_t now_ms) {
+    g->phase = PET_GAME_ROUND;
+    g->hide = (xorshift(&g->rng) >> 16) & 1 ? PET_RIGHT : PET_LEFT;
+    g->phase_end_ms = now_ms + PET_ROUND_MS;
+}
+
+void pet_game_start(struct pet_game *g, uint32_t seed, uint32_t now_ms) {
+    memset(g, 0, sizeof(*g));
+    /* spread small seeds so consecutive ones don't start alike */
+    g->rng = (seed * 2654435761u) | 1;
+    xorshift(&g->rng);
+    g->start_ms = now_ms;
+    new_round(g, now_ms);
+}
+
+static void reveal(struct pet_game *g, bool hit, uint32_t now_ms) {
+    g->last_hit = hit;
+    if (hit)
+        g->score++;
+    g->round++;
+    g->phase = PET_GAME_REVEAL;
+    g->phase_end_ms = now_ms + PET_REVEAL_MS;
+}
+
+void pet_game_guess(struct pet_game *g, enum pet_side side, uint32_t now_ms) {
+    if (g->phase == PET_GAME_ROUND)
+        reveal(g, side == g->hide, now_ms);
+}
+
+/* deadline reached, wrap-safe */
+static bool due(uint32_t now_ms, uint32_t end_ms) { return (int32_t)(now_ms - end_ms) >= 0; }
+
+void pet_game_step(struct pet_game *g, uint32_t now_ms) {
+    if (g->phase == PET_GAME_OFF)
+        return;
+    if (now_ms - g->start_ms >= PET_GAME_CAP_MS) {
+        g->phase = PET_GAME_OFF;
+        return;
+    }
+    if (!due(now_ms, g->phase_end_ms))
+        return;
+    switch (g->phase) {
+    case PET_GAME_ROUND:
+        reveal(g, false, now_ms);
+        break;
+    case PET_GAME_REVEAL:
+        if (g->round >= PET_GAME_ROUNDS) {
+            g->phase = PET_GAME_RESULT;
+            g->phase_end_ms = now_ms + PET_RESULT_MS;
+        } else {
+            new_round(g, now_ms);
+        }
+        break;
+    case PET_GAME_RESULT:
+        g->phase = PET_GAME_OFF;
+        break;
+    default:
+        break;
+    }
+}
+
+bool pet_game_capturing(const struct pet_game *g) {
+    return g->phase == PET_GAME_ROUND || g->phase == PET_GAME_REVEAL;
+}
+
+bool pet_game_won(const struct pet_game *g) {
+    return g->phase == PET_GAME_RESULT && g->score >= PET_GAME_WIN;
+}

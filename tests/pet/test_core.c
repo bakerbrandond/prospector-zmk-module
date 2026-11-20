@@ -140,6 +140,85 @@ static void test_unpack_clamps(void) {
     assert(out.shown_stage == PET_ADULT);
 }
 
+static struct pet_game g;
+
+static void test_side_of_position(void) {
+    const uint8_t left[] = {0, 5, 12, 29, 36, 37, 38};
+    const uint8_t right[] = {6, 11, 18, 35, 39, 40, 41};
+    for (size_t i = 0; i < sizeof(left); i++)
+        assert(pet_side_of_position(left[i]) == PET_LEFT);
+    for (size_t i = 0; i < sizeof(right); i++)
+        assert(pet_side_of_position(right[i]) == PET_RIGHT);
+}
+
+static enum pet_side other(enum pet_side s) { return s == PET_LEFT ? PET_RIGHT : PET_LEFT; }
+
+static void test_correct_guess_scores(void) {
+    pet_game_start(&g, 7, 1000);
+    assert(g.phase == PET_GAME_ROUND && pet_game_capturing(&g));
+    pet_game_guess(&g, g.hide, 1100);
+    assert(g.phase == PET_GAME_REVEAL && g.last_hit && g.score == 1);
+}
+
+static void test_wrong_guess_no_score(void) {
+    pet_game_start(&g, 7, 1000);
+    pet_game_guess(&g, other(g.hide), 1100);
+    assert(g.phase == PET_GAME_REVEAL && !g.last_hit && g.score == 0);
+}
+
+static void test_second_guess_ignored(void) {
+    pet_game_start(&g, 7, 1000);
+    pet_game_guess(&g, g.hide, 1100);
+    uint32_t end = g.phase_end_ms;
+    pet_game_guess(&g, g.hide, 1200);
+    assert(g.score == 1 && g.phase_end_ms == end && g.phase == PET_GAME_REVEAL);
+}
+
+static void test_round_timeout_is_miss(void) {
+    pet_game_start(&g, 7, 1000);
+    pet_game_step(&g, 1000 + PET_ROUND_MS);
+    assert(g.phase == PET_GAME_REVEAL && !g.last_hit && g.score == 0);
+}
+
+static void test_full_game_ends(void) {
+    uint32_t t = 5000;
+    pet_game_start(&g, 99, t);
+    for (int r = 0; r < PET_GAME_ROUNDS; r++) {
+        assert(g.phase == PET_GAME_ROUND);
+        t += 100;
+        pet_game_guess(&g, g.hide, t);
+        t += PET_REVEAL_MS;
+        pet_game_step(&g, t);
+    }
+    assert(g.phase == PET_GAME_RESULT);
+    assert(g.score == PET_GAME_ROUNDS);
+    assert(pet_game_won(&g) && !pet_game_capturing(&g));
+    pet_game_step(&g, t + PET_RESULT_MS);
+    assert(g.phase == PET_GAME_OFF);
+}
+
+static void test_hard_cap(void) {
+    pet_game_start(&g, 3, 2000);
+    pet_game_step(&g, 2000 + PET_GAME_CAP_MS);
+    assert(g.phase == PET_GAME_OFF && !pet_game_capturing(&g));
+}
+
+static void test_guess_when_off_ignored(void) {
+    memset(&g, 0, sizeof(g));
+    g.phase = PET_GAME_OFF;
+    pet_game_guess(&g, PET_LEFT, 10);
+    assert(g.phase == PET_GAME_OFF && g.score == 0);
+}
+
+static void test_hide_varies(void) {
+    int lefts = 0;
+    for (uint32_t seed = 0; seed < 64; seed++) {
+        pet_game_start(&g, seed, 0);
+        lefts += g.hide == PET_LEFT;
+    }
+    assert(lefts > 8 && lefts < 56);
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -159,6 +238,15 @@ int main(void) {
     RUN(test_pack_roundtrip);
     RUN(test_unpack_rejects);
     RUN(test_unpack_clamps);
+    RUN(test_side_of_position);
+    RUN(test_correct_guess_scores);
+    RUN(test_wrong_guess_no_score);
+    RUN(test_second_guess_ignored);
+    RUN(test_round_timeout_is_miss);
+    RUN(test_full_game_ends);
+    RUN(test_hard_cap);
+    RUN(test_guess_when_off_ignored);
+    RUN(test_hide_varies);
     printf("ok %d tests\n", n);
     return 0;
 }

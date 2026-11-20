@@ -52,3 +52,31 @@ bool pet_save_due(uint32_t since_save_ms, bool dirty);
 void pet_pack(const struct pet_state *p, uint8_t out[PET_BLOB_LEN]);
 /* false (and *out untouched) if the length or version is wrong */
 bool pet_unpack(const uint8_t *buf, size_t len, struct pet_state *out);
+
+/* Mini-game: the pet hides left or right; guess with a key on that half. */
+#define PET_GAME_ROUNDS 5
+#define PET_ROUND_MS 2000u
+#define PET_REVEAL_MS 600u
+#define PET_RESULT_MS 2000u
+#define PET_GAME_CAP_MS 16000u /* hard stop from start, whatever the phase */
+#define PET_GAME_WIN 3         /* score that earns the boost */
+
+enum pet_side { PET_LEFT, PET_RIGHT };
+enum pet_game_phase { PET_GAME_OFF, PET_GAME_ROUND, PET_GAME_REVEAL, PET_GAME_RESULT };
+
+struct pet_game {
+    enum pet_game_phase phase;
+    uint8_t round, score;
+    enum pet_side hide; /* where the pet hides this round */
+    bool last_hit;      /* REVEAL: was the guess right */
+    uint32_t start_ms, phase_end_ms, rng;
+};
+
+/* Corne 42-key positions: columns 0-5 of rows 0-2 and thumbs 36-38 are left */
+enum pet_side pet_side_of_position(uint8_t pos);
+void pet_game_start(struct pet_game *g, uint32_t seed, uint32_t now_ms);
+void pet_game_guess(struct pet_game *g, enum pet_side side, uint32_t now_ms); /* ROUND only */
+void pet_game_step(struct pet_game *g, uint32_t now_ms);
+/* true while the capture layer must stay on (ROUND or REVEAL) */
+bool pet_game_capturing(const struct pet_game *g);
+bool pet_game_won(const struct pet_game *g); /* RESULT and score >= PET_GAME_WIN */
