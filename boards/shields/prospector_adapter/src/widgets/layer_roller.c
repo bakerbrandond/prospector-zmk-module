@@ -24,8 +24,8 @@ struct layer_roller_state {
 /*
  * Rebuilds the roller's options from the live keymap (ZMK Studio can rename,
  * add and reorder layers at runtime, and raises no event for it), skipping the
- * layer named CONFIG_PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME (the Zappy Birds game
- * layer). Options are only re-set when the text changed. Returns the visible
+ * layers named in CONFIG_PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME (the Zappy Birds
+ * and typing pet game layers). Options are only re-set when the text changed. Returns the visible
  * row of layer index `active`, or -1 if that layer is hidden.
  */
 static int layer_roller_refresh(lv_obj_t *roller, int active) {

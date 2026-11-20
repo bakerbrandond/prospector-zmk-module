@@ -57,11 +57,14 @@ config PROSPECTOR_ZAPPY_BIRDS
       game screen. Pair with a keymap layer of &zflap bindings.
 
 config PROSPECTOR_ROLLER_HIDDEN_LAYER_NAME
-    string "Display name of a keymap layer to leave out of the layer roller"
+    string "Display names of keymap layers to leave out of the layer roller"
+    default "Zappy,Pet" if PROSPECTOR_ZAPPY_BIRDS && PROSPECTOR_TYPING_PET
     default "Zappy" if PROSPECTOR_ZAPPY_BIRDS
+    default "Pet" if PROSPECTOR_TYPING_PET
     default ""
     help
-      Matched by name, so it keeps working when ZMK Studio reorders layers.
+      Comma-separated, e.g. "Zappy,Pet". Matched by whole name, so it keeps
+      working when ZMK Studio reorders layers.
 
 config PROSPECTOR_MATRIX_SCREENSAVER
     bool "Matrix rain screensaver (half-width katakana) on the dongle screen"

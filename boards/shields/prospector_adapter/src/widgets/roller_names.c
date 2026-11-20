@@ -11,6 +11,19 @@ static void append(char *buf, size_t len, size_t *pos, const char *s, bool caps)
     buf[*pos] = '\0';
 }
 
+/* true if name equals one entry of the comma-separated list (whole names only) */
+static bool in_list(const char *name, const char *list) {
+    size_t n = strlen(name);
+    while (list && *list) {
+        const char *end = strchr(list, ',');
+        size_t len = end ? (size_t)(end - list) : strlen(list);
+        if (len == n && n > 0 && strncmp(list, name, n) == 0)
+            return true;
+        list = end ? end + 1 : NULL;
+    }
+    return false;
+}
+
 int roller_build(const char *const *names, int n, int active, const char *hidden, bool all_caps,
                  char *buf, size_t len) {
     size_t pos = 0;
@@ -20,7 +33,7 @@ int roller_build(const char *const *names, int n, int active, const char *hidden
     buf[0] = '\0';
     for (int i = 0; i < n; i++) {
         const char *name = names[i];
-        if (hidden && *hidden && name && strcmp(name, hidden) == 0)
+        if (name && in_list(name, hidden))
             continue;
         if (row > 0)
             append(buf, len, &pos, "\n", false);

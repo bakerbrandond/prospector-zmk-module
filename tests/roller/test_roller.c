@@ -46,6 +46,25 @@ static void test_truncates_safely(void) {
     assert(small[10] == 'x' && small[11] == 'x'); /* nothing written past len */
 }
 
+static void test_hidden_list(void) {
+    const char *names[] = {"A", "Zappy", "B", "Pet"};
+    assert(roller_build(names, 4, 2, "Zappy,Pet", false, buf, sizeof(buf)) == 1);
+    assert(strcmp(buf, "A\nB") == 0);
+}
+
+static void test_hidden_list_active(void) {
+    const char *names[] = {"A", "Zappy", "B", "Pet"};
+    assert(roller_build(names, 4, 3, "Zappy,Pet", false, buf, sizeof(buf)) == -1);
+}
+
+static void test_hidden_no_prefix_match(void) {
+    const char *names[] = {"Petal", "Zap"};
+    assert(roller_build(names, 2, 0, "Pet", false, buf, sizeof(buf)) == 0);
+    assert(strcmp(buf, "Petal\nZap") == 0);
+    assert(roller_build(names, 2, 1, "Zappy,Pet", false, buf, sizeof(buf)) == 1);
+    assert(strcmp(buf, "Petal\nZap") == 0);
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -55,6 +74,9 @@ int main(void) {
     RUN(test_unnamed_uses_index);
     RUN(test_caps);
     RUN(test_truncates_safely);
+    RUN(test_hidden_list);
+    RUN(test_hidden_list_active);
+    RUN(test_hidden_no_prefix_match);
     printf("ok %d tests\n", n);
     return 0;
 }
