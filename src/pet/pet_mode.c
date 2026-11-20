@@ -57,7 +57,8 @@ static K_MUTEX_DEFINE(lock);
 static struct pet_state pet = {.fullness_ms = PET_FULL_MS};
 static struct pet_game game;
 static bool dirty;
-static uint32_t boost_until;
+static bool boosting;
+static uint32_t boost_start;
 static bool result_seen;
 
 /* system work queue only */
@@ -66,7 +67,7 @@ static uint32_t last_life_ms, last_save_ms;
 /* display work queue only */
 static lv_obj_t *wpm_obj, *pet_obj;
 static lv_timer_t *frame_timer;
-static uint32_t celebrate_until;
+static uint32_t celebrate_start;
 static bool celebrating;
 
 static void life_work_cb(struct k_work *work);
@@ -227,17 +228,19 @@ static void frame_cb(lv_timer_t *t) {
     pet_game_step(&game, now);
     if (game.phase == PET_GAME_RESULT && !result_seen) {
         result_seen = true;
-        if (pet_game_won(&game))
-            boost_until = now + PET_BOOST_MS;
+        if (pet_game_won(&game)) {
+            boosting = true;
+            boost_start = now;
+        }
     }
     game_capturing = pet_game_capturing(&game);
     stage = pet_stage_of(pet.growth_half);
     /* a stage reached since it was last on screen: celebrate, then remember */
     if (!celebrating && pet.shown_stage < stage) {
         celebrating = true;
-        celebrate_until = now + CELEBRATE_MS;
+        celebrate_start = now;
     }
-    if (celebrating && (int32_t)(now - celebrate_until) >= 0) {
+    if (celebrating && !pet_within(celebrate_start, now, CELEBRATE_MS)) {
         celebrating = false;
         pet.shown_stage = stage;
         dirty = true;
@@ -253,7 +256,9 @@ static void frame_cb(lv_timer_t *t) {
     v.round = game.round;
     v.side = game.hide;
     v.hit = game.last_hit;
-    bool boost = (int32_t)(boost_until - now) > 0;
+    if (boosting && !pet_within(boost_start, now, PET_BOOST_MS))
+        boosting = false;
+    bool boost = boosting;
     k_mutex_unlock(&lock);
 
     if (!game_capturing)

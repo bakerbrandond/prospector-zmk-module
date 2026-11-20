@@ -45,6 +45,9 @@ void pet_feed(struct pet_state *p);
 /* Hearts shown = mood level (0..4) */
 enum pet_mood { PET_ASLEEP, PET_SLEEPY, PET_CALM, PET_HAPPY, PET_EXCITED };
 
+/* true while now is less than dur_ms after start (wrap-safe; the caller keeps
+ * a flag for "started at all", since every start value is a valid time) */
+bool pet_within(uint32_t start_ms, uint32_t now_ms, uint32_t dur_ms);
 enum pet_mood pet_mood_of(int wpm, uint32_t idle_ms, bool boost);
 bool pet_save_due(uint32_t since_save_ms, bool dirty);
 

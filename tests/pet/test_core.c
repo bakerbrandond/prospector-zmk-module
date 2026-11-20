@@ -228,6 +228,13 @@ static void test_progress_pct(void) {
     assert(pet_progress_pct(UINT32_MAX) == 100);
 }
 
+static void test_within_wraps(void) {
+    assert(pet_within(1000, 1500, 1000));
+    assert(!pet_within(1000, 2000, 1000));
+    assert(pet_within(UINT32_MAX - 10, 5, 100)); /* across the uptime wrap */
+    assert(!pet_within(0, 0x80000001u, PET_BOOST_MS)); /* long after: not active */
+}
+
 int main(void) {
     int n = 0;
 #define RUN(t) (t(), n++)
@@ -257,6 +264,7 @@ int main(void) {
     RUN(test_guess_when_off_ignored);
     RUN(test_hide_varies);
     RUN(test_progress_pct);
+    RUN(test_within_wraps);
     printf("ok %d tests\n", n);
     return 0;
 }

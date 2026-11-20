@@ -52,6 +52,10 @@ void pet_elapse(struct pet_state *p, uint32_t elapsed_ms) {
 
 void pet_feed(struct pet_state *p) { p->fullness_ms = PET_FULL_MS; }
 
+bool pet_within(uint32_t start_ms, uint32_t now_ms, uint32_t dur_ms) {
+    return now_ms - start_ms < dur_ms;
+}
+
 enum pet_mood pet_mood_of(int wpm, uint32_t idle_ms, bool boost) {
     if (idle_ms >= PET_SLEEP_IDLE_MS)
         return PET_ASLEEP;
